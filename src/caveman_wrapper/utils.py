@@ -1,15 +1,9 @@
 """
 CaVEMan wrapper to replace Perl script
 
-This script uses multiprocessing to ensure that CPU resource
-allocated by HPC schedulers are adequately used
+utilities classes for caveman params and consts
 """
-import os
-import sys
-import subprocess
 import argparse
-import time
-import multiprocessing
 from dataclasses import dataclass
 
 
