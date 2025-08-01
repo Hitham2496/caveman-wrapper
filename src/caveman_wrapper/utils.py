@@ -5,11 +5,13 @@ This script uses multiprocessing to ensure that CPU resource
 allocated by HPC schedulers are adequately used
 """
 import os
+import sys
 import subprocess
 import argparse
 import time
 import multiprocessing
 from dataclasses import dataclass
+
 
 # Class for constants, the valid params for caveman running
 class CavemanConstants():
@@ -55,48 +57,90 @@ class CavemanFlags():
     provided at runtime, naming maximally reflective
     of Perl script naming convention
     """
-    h: bool = False
     man: bool = False
     version: bool = False
-    reference: str
-    outdir: str
-    tumbam: str
-    normbam: str
-    ignore: str
-    tumcn: str
-    normcn: str
-    threads: int
-    normcont: str
-    species: str
-    species_assembly: str
-    process: str
-    logs: str
-    index: int
-    limit: int
-    flag_bed: str
-    annot_bed: str
-    germindel: str
-    unmatchedvcf: str
-    normprot: str
-    tumprot: str
-    tumdefcn: int
-    normdefcn: int
-    flagConfig: str
-    flagToVcfConfig: str
-    priorMut: float
-    priorSnp: float
-    apid: int
-    tplat: str
-    nplat: str
-    seqType: str
+    reference: str = None
+    outdir: str = None
+    tumour_bam: str = None
+    normal_bam: str = None
+    ignore_file: str = None
+    tumour_cn: str = None
+    normal_cn: str = None
+    threads: int = None
+    normal_contamination: str = None
+    species: str = None
+    species_assembly: str = None
+    process: str = None
+    logs: str = None
+    index: int = None
+    limit: int = None
+    flag_bed_files: str = None
+    annot_bed: str = None
+    germindel: str = None
+    unmatched_vcf: str = None
+    normal_protocol: str = None
+    tumour_protocol: str = None
+    tum_cn_default: int = None
+    norm_cn_default: int = None
+    flagConfig: str = None
+    flagToVcfConfig: str = None
+    priorMut: float = None
+    priorSnp: float = None
+    apid: int = None
+    tplat: str = None
+    nplat: str = None
+    seqType: str = None
     noflag: bool = False
     noclean: bool = False
-    mpc: float
-    spc: float
-    read_count: int
-    exclude: str
+    mut_probability_cutoff: float = None
+    snp_probability_cutoff: float = None
+    read_count: int = None
+    exclude: str = None
     debug_cave: bool = False
 
+    # Dictionary of shortened flags for the argument parser
+    short_flags = {
+       "man" : "m",
+       "version" : "v",
+       "reference" : "r",
+       "outdir" : "o",
+       "tumour_bam" : "tb",
+       "normal_bam" : "nb",
+       "ignore_file" : "ig",
+       "tumour_cn" : "tc",
+       "normal_cn" : "nc",
+       "threads" : "t",
+       "normal_contamination" : "k",
+       "species" : "s",
+       "species_assembly" : "sa",
+       "process" : "p",
+       "logs" : "g",
+       "index" : "i",
+       "limit" : "l",
+       "flag_bed_files" : "b",
+       "annot_bed" : "ab",
+       "germindel" : "in",
+       "unmatched_vcf" : "u",
+       "normal_protocol" : "np",
+       "tumour_protocol" : "tp",
+       "tum_cn_default" : "td",
+       "norm_cn_default" : "nd",
+       "flagConfig" : "c",
+       "flagToVcfConfig" : "f",
+       "priorMut" : "pm",
+       "priorSnp" : "ps",
+       "apid" : "a",
+       "tplat" : "TP",
+       "nplat" : "NP",
+       "seqType" : "st",
+       "noflag" : "noflag",
+       "noclean" : "noclean",
+       "mut_probability_cutoff" : "mpc",
+       "snp_probability_cutoff" : "spc",
+       "read_count" : "e",
+       "exclude" : "x",
+       "debug_cave" : "dbg"
+    }
     
     @classmethod
     def parser(cls):
@@ -106,7 +150,12 @@ class CavemanFlags():
         p = argparse.ArgumentParser(description="My parser")
         for key in cls.__annotations__.keys():
             value = cls.__annotations__[key]
-            # Stub to make room for a key shortening dictionary later
-            # TODO: think about how to implement the key shortening dictionary
-            p.add_argument(f'--{key}', f'-{key[0]+key[-2:]}', type=value)
+            long_flag = f"--{key.replace("_", "-")}"
+            short_flag = f"-{cls.short_flags[key]}"
+
+            if value == bool:
+                p.add_argument(long_flag, action=argparse.BooleanOptionalAction)
+                continue
+
+            p.add_argument(long_flag, short_flag, type=value)
         return p
