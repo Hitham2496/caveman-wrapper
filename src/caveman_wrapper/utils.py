@@ -144,7 +144,7 @@ class CavemanFlags():
         p = argparse.ArgumentParser(description="My parser")
         for key in cls.__annotations__.keys():
             value = cls.__annotations__[key]
-            long_flag = f"--{key.replace("_", "-")}"
+            long_flag = f"--{key.replace('_', '-')}"
             short_flag = f"-{cls.short_flags[key]}"
 
             if value == bool:
