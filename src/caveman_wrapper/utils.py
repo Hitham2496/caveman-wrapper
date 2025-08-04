@@ -94,6 +94,7 @@ class CavemanFlags():
 
     # Dictionary of shortened flags for the argument parser
     short_flags = {
+       "help" : "h"
        "man" : "m",
        "version" : "v",
        "reference" : "r",
@@ -141,11 +142,15 @@ class CavemanFlags():
         """
         An argument parser to prepare flags for the CavemanFlags class
         """
-        p = argparse.ArgumentParser(description="My parser")
+        p = argparse.ArgumentParser(description="Usage: caveman.py [kwargs]")
         for key in cls.__annotations__.keys():
             value = cls.__annotations__[key]
             long_flag = f"--{key.replace('_', '-')}"
             short_flag = f"-{cls.short_flags[key]}"
+
+            # Help is added automatically
+            if key == "help":
+                continue
 
             if value == bool:
                 p.add_argument(long_flag, action=argparse.BooleanOptionalAction)
