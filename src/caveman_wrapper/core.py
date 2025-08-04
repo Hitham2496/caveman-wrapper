@@ -11,9 +11,15 @@ import sys
 import subprocess
 import time
 import multiprocessing
-import utils
+from .utils import *
 
 class CaveManRunner():
     """
-
+    Class to initialise, distribute resources for, and run caveman
+    on HPC, based on the original wrapper keyword arguments.
     """
+
+    def __init__(self, **kwargs):
+        """
+        Initialises the runner from allowed key word arguments
+        """
