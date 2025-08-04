@@ -11,15 +11,19 @@ import sys
 import subprocess
 import time
 import multiprocessing
-from .utils import *
+from .utils import CavemanFlags
 
-class CaveManRunner():
+class CavemanRunner():
     """
     Class to initialise, distribute resources for, and run caveman
     on HPC, based on the original wrapper keyword arguments.
     """
 
+    HELP_MESSAGE = f"Wrapper for CaVEMan, usage: caveman.py [kwargs]\n{CavemanFlags.short_flags}"
+
     def __init__(self, **kwargs):
         """
         Initialises the runner from allowed key word arguments
         """
+        if kwargs["help"]:
+            print(self.HELP_MESSAGE)
