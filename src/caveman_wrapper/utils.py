@@ -122,7 +122,7 @@ class CavemanFlags():
 
     # Dictionary of shortened flags for the argument parser
     short_flags = {
-       "help" : "h"
+       "help" : "h",
        "man" : "m",
        "version" : "v",
        "reference" : "r",
