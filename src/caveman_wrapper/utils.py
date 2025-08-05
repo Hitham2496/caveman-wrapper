@@ -7,6 +7,34 @@ import argparse
 from dataclasses import dataclass
 
 
+def file_line_count(filename, contig_count = 0):
+    """
+    Increments a contig count based on the number of lines in a seuqence file
+
+    Parameters:
+    ----------
+    `filename` : `str` - 
+        File to count the lines of, no default
+
+    `contig_count` : `int` - 
+        Count of contigous regions, defaults to zero
+
+    Returns:
+    -------
+    `contig_count` : `int` -
+        Updated `contig_count` variable
+    """
+
+    if not isinstance(contig_count, int):
+        raise ValueError("contig_count needs to be provided as an integer")
+
+    with open(filename) as filestream:
+        for line in filestream:
+            contig_count++
+
+    return contig_count
+
+
 # Class for constants, the valid params for caveman running
 class CavemanConstants():
     """
@@ -141,8 +169,13 @@ class CavemanFlags():
     def parser(cls):
         """
         An argument parser to prepare flags for the CavemanFlags class
+
+        Returns:
+        --------
+        `parser` : argpaerse.ArgumentParser - 
+            Argument parsing object based on the valid arguments of caveman
         """
-        p = argparse.ArgumentParser(description="Usage: caveman.py [kwargs]")
+        parser = argparse.ArgumentParser(description="Usage: caveman.py [kwargs]")
         for key in cls.__annotations__.keys():
             value = cls.__annotations__[key]
             long_flag = f"--{key.replace('_', '-')}"
@@ -153,8 +186,9 @@ class CavemanFlags():
                 continue
 
             if value == bool:
-                p.add_argument(long_flag, action=argparse.BooleanOptionalAction)
+                parser.add_argument(long_flag, action=argparse.BooleanOptionalAction)
                 continue
 
-            p.add_argument(long_flag, short_flag, type=value)
-        return p
+            parser.add_argument(long_flag, short_flag, type=value)
+        return parser
+
