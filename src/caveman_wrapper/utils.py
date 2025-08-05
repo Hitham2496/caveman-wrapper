@@ -30,7 +30,7 @@ def file_line_count(filename, contig_count = 0):
 
     with open(filename) as filestream:
         for line in filestream:
-            contig_count++
+            contig_count += 1
 
     return contig_count
 
