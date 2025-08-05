@@ -100,6 +100,12 @@ class CavemanRunner():
         
         # Step 1. set up processes in the same way as caveman.pl::setup
 
+        # VALID_PROCESSES = ["setup", "split", "split_concat", "mstep", "merge", "estep", "merge_results", "add_ids", "flag"]
+        if self.process:
+            if not (self.process in CavemanConstants.VALID_PROCESSES):
+                raise ValueError(f"Process '{self.process}' is not a valid caveman process")
+        return
+
         # Step 2. register processes i.e. if `threads` is given, use as many processes as requested
 
         # Step 3. create temporary reference to be cleaned if reference is in `*.gz.fai` format
@@ -121,12 +127,6 @@ class CavemanRunner():
         # Step 11. caveman_flag: if !process OR process == flag OR !noflag
 
         # Step 12. cleanup: if !noclean
-
-        # VALID_PROCESSES = ["setup", "split", "split_concat", "mstep", "merge", "estep", "merge_results", "add_ids", "flag"]
-        if self.process:
-            if not (self.process in CavemanConstants.VALID_PROCESSES):
-                raise ValueError(f"Process '{self.process}' is not a valid caveman process")
-        return
 
    # def caveman_setup(self):
    #     """
