@@ -40,7 +40,7 @@ class CavemanRunner():
             sys.exit()
         # Raise an error if the caveman executabel is not in the path
         # Do this before checking version
-        if not check_caveman_in_path():
+        if not self.check_caveman_in_path():
             raise FileNotFoundError("`caveman` could not be found in $PATH")
 
         if "version" in kwargs:
