@@ -79,7 +79,52 @@ class CavemanRunner():
         Runs CAVEMAN_FLAG from the parameters used at initialisation
         """
 
+    def concat(self):
+        """
+        Runs concatenation for files from caveman running
+        """
+
     def concat_flagged(self):
         """
         Runs CAVEMAN_VCF_FLAGGED_CONCAT from the parameters used at initialisation
+        """
+
+    def zip_flagged(self):
+        """
+        Zips flagged files from caveman_flag stage
+        """
+
+    def pre_cleanup_zip(self):
+        """
+        Zip files before the cleanup stage if cleanup option is specified
+        """
+
+    def limited_indices(self):
+        """
+        Checks whether the index is not greater than the limit or lower than 1
+        """
+
+    def limited_flag_indices(self):
+        """
+        Check limited indices for the VCF split count
+        """
+        
+    def limited_xstep_indices(self):
+        """
+        Check limited indices for the split list count
+        """
+
+    def load_exclude(self):
+        """
+        Loads the file of excludes and returns the exclude pattern
+        """
+
+    def valid_seq_indices(self):
+        """
+        Checks that the sequence indices provided are valid
+        """
+
+    def extend_no_analysis(self):
+        """
+        Extends no analysis in caveman_merge results
         """
