@@ -7,6 +7,7 @@ This script uses multiprocessing to ensure that CPU resource
 allocated by HPC schedulers are adequately used
 """
 import os
+import shutil
 import sys
 import subprocess
 import time
@@ -37,8 +38,10 @@ class CavemanRunner():
         if "man" in kwargs:
             self.open_caveman_wrapper_manual()
             sys.exit()
-
-        # TODO: check if the caveman executable(s) are in the path
+        # Raise an error if the caveman executabel is not in the path
+        # Do this before checking version
+        if not check_caveman_in_path():
+            raise FileNotFoundError("`caveman` could not be found in $PATH")
 
         if "version" in kwargs:
             self.print_caveman_version()
@@ -70,6 +73,17 @@ class CavemanRunner():
         Opens the caveman wrapper script manual page
         """
         print("This will become the manual")
+
+    def check_caveman_in_path(self):
+        """
+        Attempts to locate the C executable for caveman in $PATH
+
+        Returns:
+        --------
+        `bool` - 
+            True if found, False otherwise
+        """
+        return bool(shutil.which("caveman"))
 
    # def caveman_setup(self):
    #     """
