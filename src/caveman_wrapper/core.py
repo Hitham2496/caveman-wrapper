@@ -178,7 +178,7 @@ class CavemanRunner():
             if protocol_option is None:
                 setattr(protocol, CavemanConstants.DEFAULT_PROTOCOL)
 
-            else if protocol_option not in CavemanConstants.VALID_PROTOCOLS:
+            elif protocol_option not in CavemanConstants.VALID_PROTOCOLS:
                 raise ValueError(f"{protocol} option '{protocol_option}' is not recognised, protocols "
                                  f"must be one of: {', '.join(CavemanConstants.VALID_PROTOCOLS)}")
 
@@ -199,7 +199,7 @@ class CavemanRunner():
 
         # xiii. make paths!
 
-     def get_species_assembly_from_bam(self):
+      def get_species_assembly_from_bam(self):
          """
          Gets species assemblies from BAM files, sets `species`, `species_assembly`
          from reference
