@@ -147,6 +147,9 @@ class CavemanRunner():
                 delattr(self, del_flag)
 
         # iv. set read-count to default unless provided
+        if hasattr(self, "read_count") and (getattr(self, "read_count") is None):
+           setattr(self, "read_count", CavemanConstants.SPLIT_STEP_READ_COUNT) 
+
         # v. check outdir, if exists throw error and quit
         # vi. check (flagconfig, flagtovcfconfig, germline-indel-bed) if provided
         # vii. check reference provided is the fasta fai file
