@@ -142,9 +142,13 @@ class CavemanRunner():
             if getattr(self, del_flag, None) is None:
                 delattr(self, del_flag)
 
-        # iv. set read-count to default unless provided
+        # iv. set read-count to default unless provided, check germindelbed
         if getattr(self, "read_count", None) is None:
             setattr(self, "read_count", CavemanConstants.SPLIT_STEP_READ_COUNT) 
+
+        germindel_filename = getattr(self, "germindel", None)
+        if not os.path.isfile(germindel_filename):
+            raise ValueError(f"File '{germindel_filename}' for option 'germindel' could not be found")
 
         # v. check outdir, if exists throw error and quit
         # vi. check (flagconfig, flagtovcfconfig, germline-indel-bed) if provided
