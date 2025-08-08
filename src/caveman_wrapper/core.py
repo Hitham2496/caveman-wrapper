@@ -59,7 +59,7 @@ class CavemanRunner():
 
             setattr(self, key, kwargs[key])
 
-        self.run_caveman()
+        self.setup_caveman()
 
     def print_help_message(self):
         """
@@ -92,19 +92,63 @@ class CavemanRunner():
         self.caveman_executable = shutil.which("caveman")
         return True # bool(self.caveman_executable)
 
-    def run_caveman(self):
+    def setup_caveman(self):
         """
-        Run caveman with the parameters identified at initialisation
+        Setup caveman with the parameters identified at initialisation
         """
-        # TODO: This is an outline of what needs to be added here
         
-        # Step 1. set up processes in the same way as caveman.pl::setup
+        # i. check files (ref, tumbam, normbam, ignore)  exists
+        if not self.noflag:
+            self.noflag = False
+
+        if not self.noclean:
+            self.noflag = False
+
+        # set working dir as object member
+        self.working_dir = os.getcwd()
+
+        if not os.path.isfile(self.reference):
+            raise ValueError("Reference file {self.reference} could not be found")
+
+        if not (os.path.isfile("f{self.normal_bam}.bai") or
+                os.path.isfile("f{self.normal_bam}.csi") or
+                os.path.isfile("f{self.normal_bam}.crai")):
+            raise ValueError("Tumour BAM file {self.normal_bam} could not be found")
+
+        if not (os.path.isfile("f{self.normal_bam}.bai") or
+                os.path.isfile("f{self.normal_bam}.csi") or
+                os.path.isfile("f{self.normal_bam}.crai")):
+            raise ValueError("Tumour BAM file {self.tumour_bam} could not be found")
+
+        if not os.path.isfile(self.ignore_file):
+            raise ValueError("Ignore file {self.ignore_file} could not be found")
+        
+        # ii. check (tumcn, normcn) exists if provided
+
+        # iii. set (process, index, limit, exclude) if provided
+        # iv. set read-count to default unless provided
+        # v. check outdir, if exists throw error and quit
+        # vi. check (flagconfig, flagtovcfconfig, germline-indel-bed) if provided
+        # vii. check reference provided is the fasta fai file
+        # viii. check protocols provided for (normprot, tumprot) otherwise set to default
+        # ix. set threads to 1 unless specified
+        # x. if normcont is defined, try to extract it from the file, fail if it doesn't work
+        # xi. create objects for output files, starting with tmp dir in outdir
+        # xii. check process - if provided - is valid, set max index if it is provided otherwise default
 
         # VALID_PROCESSES = ["setup", "split", "split_concat", "mstep", "merge", "estep", "merge_results", "add_ids", "flag"]
         if self.process:
             if not (self.process in CavemanConstants.VALID_PROCESSES):
                 raise ValueError(f"Process '{self.process}' is not a valid caveman process")
-        return
+
+        # xiii. make paths!
+
+
+     def run_caveman(self):
+         """
+         Runs caveman with parameters from initialisation and setup
+         """
+        # Step 1. setup has been completed
 
         # Step 2. register processes i.e. if `threads` is given, use as many processes as requested
 
