@@ -141,8 +141,11 @@ class CavemanRunner():
                 else:
                     raise ValueError(f"File '{filename}' for option '{key}' could not be found")
                 
+        # iii. delete (process, index, limit, exclude) if not provided
+        for del_flag in ["process", "index", "limit", "exclude"]:
+            if hasattr(self, del_flag) and (getattr(self, del_flag) is None):
+                delattr(self, del_flag)
 
-        # iii. set (process, index, limit, exclude) if provided
         # iv. set read-count to default unless provided
         # v. check outdir, if exists throw error and quit
         # vi. check (flagconfig, flagtovcfconfig, germline-indel-bed) if provided
