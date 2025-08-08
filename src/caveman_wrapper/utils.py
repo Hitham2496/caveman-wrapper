@@ -61,6 +61,10 @@ def check_outdir(directory_name):
             sys.exit(1)
 
         print(f"Directory {directory_name} exists, output files will be written here", file=sys.stderr)
+
+    elif os.path.isfile(directory_name) or os.path.islink(directory_name):
+        raise OSError(f"Non-directory object already exists at location f{directory_name}")
+
     else:
         print(f"Directory {directory_name} does not exist, creating now", file=sys.stderr)
         try:
@@ -87,6 +91,7 @@ class CavemanConstants():
     CAVEMAN_PROB_ARR = "prob_arr"
     CAVEMAN_COV_ARR = "cov_arr"
     DEFAULT_PROTOCOL = "WGS"
+    DEFAULT_NORMCONT = 0.1
     SPLIT_LINE_COUNT = 25000
     SPLIT_STEP_READ_COUNT = 500000
 

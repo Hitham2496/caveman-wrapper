@@ -10,6 +10,7 @@ import shutil
 import subprocess
 import time
 import multiprocessing
+import re
 from .utils import *
 
 class CavemanRunner():
@@ -19,6 +20,10 @@ class CavemanRunner():
     """
 
     HELP_MESSAGE = f"Wrapper for CaVEMan, usage: caveman.py [kwargs]\n{CavemanFlags.short_flags}"
+
+    # Container for value of normal contamination if it is provided
+    # so as not to overwrite the filename we get it from (!)
+    normcont_value = None
 
     def __init__(self, **kwargs):
         """
@@ -101,23 +106,23 @@ class CavemanRunner():
                 setattr(self, item, False)
 
         # set working dir as object member
-        setattr(self, working_dir, os.getcwd())
+        #setattr(self, working_dir, os.getcwd())
 
         if not os.path.isfile(self.reference):
-            raise ValueError("Reference file {self.reference} could not be found")
+            raise ValueError(f"Reference file {self.reference} could not be found")
 
-        if not (os.path.isfile("f{self.tumour_bam}.bai") or
-                os.path.isfile("f{self.tumour_bam}.csi") or
-                os.path.isfile("f{self.tumour_bam}.crai")):
-            raise ValueError("Tumour BAM file {self.tumour_bam} could not be found")
+        if not (os.path.isfile(f"{self.tumour_bam}.bai") or
+                os.path.isfile(f"{self.tumour_bam}.csi") or
+                os.path.isfile(f"{self.tumour_bam}.crai")):
+            raise ValueError(f"Tumour BAM file {self.tumour_bam} could not be found")
 
-        if not (os.path.isfile("f{self.normal_bam}.bai") or
-                os.path.isfile("f{self.normal_bam}.csi") or
-                os.path.isfile("f{self.normal_bam}.crai")):
-            raise ValueError("Tumour BAM file {self.normal_bam} could not be found")
+        if not (os.path.isfile(f"{self.normal_bam}.bai") or
+                os.path.isfile(f"{self.normal_bam}.csi") or
+                os.path.isfile(f"{self.normal_bam}.crai")):
+            raise ValueError(f"Tumour BAM file {self.normal_bam} could not be found")
 
         if not os.path.isfile(self.ignore_file):
-            raise ValueError("Ignore file {self.ignore_file} could not be found")
+            raise ValueError(f"Ignore file {self.ignore_file} could not be found")
         
         #### ii. check (tumcn, normcn) exists if provided
         control_args = {"tumour_cn" : "tum_cn_default" , "normal_cn" : "norm_cn_default" }
@@ -149,7 +154,7 @@ class CavemanRunner():
         check_outdir(outdir)
         
         log_dir = f"{outdir}/logs"
-        if os.isdir(log_dir):
+        if os.path.isdir(log_dir):
             raise OSError(f"Presence of {log_dir} indicates that an analysis has been completed, delete to rerun")
 
         #### vi. check (flagconfig, flagtovcfconfig, germline-indel-bed) if provided
@@ -158,7 +163,7 @@ class CavemanRunner():
             if not os.path.isfile(config_val):
                 raise ValueError(f"File '{config_val}' for option '{config_arg}' could not be found")
 
-        # vii. get assembly and check reference provided is the fasta fai file
+        #### vii. get assembly and check reference provided is the fasta fai file
 
         # TODO: Implement more than a stub for this function
         self.get_species_assembly_from_bam()
@@ -170,7 +175,7 @@ class CavemanRunner():
         if getattr(self, "seqType", None) not in CavemanConstants.VALID_SEQ_TYPES:
             raise ValueError(f"seqType must be one of: {', '.join(CavemanConstants.VALID_SEQ_TYPES)}")
 
-        # viii. check protocols provided for (normprot, tumprot) otherwise set to default
+        #### viii. check protocols provided for (normprot, tumprot) otherwise set to default
         for protocol in ["tumour_protocol", "normal_protocol"]:
 
             protocol_option = getattr(self, protocol, None)
@@ -182,15 +187,42 @@ class CavemanRunner():
                 raise ValueError(f"{protocol} option '{protocol_option}' is not recognised, protocols "
                                  f"must be one of: {', '.join(CavemanConstants.VALID_PROTOCOLS)}")
 
-        # ix. set threads to 1 unless specified
+        #### ix. set threads to 1 unless specified
         if getattr(self, "threads", None) is None:
             setattr(self, "threads", 1)
 
-        # x. if normcont is defined, try to extract it from the file, fail if it doesn't work
+        #### x. if normcont is defined, try to extract it from the file, fail if it doesn't work
+        if getattr(self, "normal_contamination", None):
 
-        # xi. create objects for output files, starting with tmp dir in outdir
+            if not os.path.isfile(self.normal_contamination):
+                raise ValueError(f"Reference file {self.reference} could not be found")
 
-        # xii. check process - if provided - is valid, set max index if it is provided otherwise default
+            elif os.path.getsize(self.normal_contamination) == 0:
+                raise ValueError(f"Normal contamination file {self.normal_contamination} is empty.")
+
+            # Search for data of the form 'NormalContamination <number>' 
+            with open(self.normal_contamination, "r") as norm_cont:
+                norm_cont_data = norm_cont.readlines()
+
+            for line in norm_cont_data:
+                match_line = re.match(r"^NormalContamination\s(\d+\.?\d*)$", line)
+                if match_line:
+                    setattr(self, "normcont_value", float(match_line.group(1)))
+                    break
+
+            if getattr(self, "normcont_value", None) is None:
+                raise RuntimeError(f"Could not find NormalContamination value in {self.normal_contamination}")
+
+            # Value needs to be between 0 and 1, negatives will not give a match
+            elif self.normcont_value > 1.:
+                raise ValueError(f"NormalContamination value {self.normcont_value} must be between 0. and 1.")
+
+        else:
+            setattr(self, "normcont_value", CavemanConstants.DEFAULT_NORMCONT)
+
+        #### xi. create objects for output files, starting with tmp dir in outdir
+
+        #### xii. check process - if provided - is valid, set max index if it is provided otherwise default
 
         # VALID_PROCESSES = ["setup", "split", "split_concat", "mstep", "merge", "estep", "merge_results", "add_ids", "flag"]
         if self.process:
@@ -198,8 +230,9 @@ class CavemanRunner():
                 raise ValueError(f"Process '{self.process}' is not a valid caveman process")
 
         # xiii. make paths!
+        return
 
-      def get_species_assembly_from_bam(self):
+    def get_species_assembly_from_bam(self):
          """
          Gets species assemblies from BAM files, sets `species`, `species_assembly`
          from reference
@@ -209,11 +242,10 @@ class CavemanRunner():
          setattr(self, "species", "human")
          setattr(self, "species_assembly", "human_assembly")
 
-
-     def run_caveman(self):
-         """
-         Runs caveman with parameters from initialisation and setup
-         """
+    def run_caveman(self):
+        """
+        Runs caveman with parameters from initialisation and setup
+        """
         # Step 1. setup has been completed
 
         # Step 2. register processes i.e. if `threads` is given, use as many processes as requested
