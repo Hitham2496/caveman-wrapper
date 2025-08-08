@@ -4,6 +4,8 @@ CaVEMan wrapper to replace Perl script
 utilities classes for caveman params and consts
 """
 import argparse
+import os
+import sys
 from dataclasses import dataclass
 
 
@@ -33,6 +35,39 @@ def file_line_count(filename, contig_count = 0):
             contig_count += 1
 
     return contig_count
+
+
+def check_outdir(directory_name):
+    """
+    Simplified void implementation of PCAP::CLI::out_dir_check,
+    which does not ask to overwrite an existing directory.
+
+    Parameters
+    ----------
+    `directory_name` : `str` - 
+        Name of the directory to use as the output dir
+    """
+    if directory_name is None:
+        raise ValueError("Output directory name must be provided")
+
+    if os.path.isdir(directory_name):
+        if len(os.listdir(directory_name)) != 0:
+            raise OSError("Directory {directory_name} exists and is non-empty")
+
+        try:
+            filestream = open(f"{directory_name}/test_file.txt", 'w')
+        except IOError:
+            print(f"Directory {directory_name} is write-protected", file=sys.stderr)
+            sys.exit(1)
+
+        print(f"Directory {directory_name} exists, output files will be written here", file=sys.stderr)
+    else:
+        print(f"Directory {directory_name} does not exist, creating now", file=sys.stderr)
+        try:
+            os.mkdir(directory_name)
+        except Exception as e:
+            print(e, file=sys.stderr)
+            print(f"Error creating output directory {directory_name}", file=sys.stderr)
 
 
 # Class for constants, the valid params for caveman running
