@@ -97,15 +97,13 @@ class CavemanRunner():
         Setup caveman with the parameters identified at initialisation
         """
         
-        # i. check files (ref, tumbam, normbam, ignore)  exists
-        if not self.noflag:
-            self.noflag = False
-
-        if not self.noclean:
-            self.noflag = False
+        # i. check files (ref, tumbam, normbam, ignore) exists
+        for item in ["noflag", "noclean"]: 
+            if (getattr(self, item, None) is None):
+                setattr(self, item, False)
 
         # set working dir as object member
-        self.working_dir = os.getcwd()
+        setattr(self, working_dir, os.getcwd())
 
         if not os.path.isfile(self.reference):
             raise ValueError("Reference file {self.reference} could not be found")
@@ -127,28 +125,26 @@ class CavemanRunner():
         control_args = {"tumour_cn" : "tum_cn_default" , "normal_cn" : "norm_cn_default" }
         for key in control_args:
             # Check if tumour and normal control exist and are defined
-            if hasattr(self, key) and (getattr(self, key) is not None):
-                filename = getattr(self, key)
+             filename = getattr(self, key, None)
+             if filename is None:
+                 raise ValueError(f"File '{filename}' for option '{key}' could not be found")
 
-                # Check the file actually exists
-                if os.path.isfile(filename):
-                    default_defined = (not hasattr(self, control_args[key])) or (getattr(self, control_args[key]) is None)
+             # Check the file actually exists
+             if os.path.isfile(filename):
+                 default_undefined = not hasattr(self, control_args[key])
 
-                    # Check the default value for the control is defined if the file is empty
-                    if os.path.getsize(filename) == 0 and default_defined:
-                        raise ValueError(f"If file specified for {key} is empty, {control_args[key]} should be defined.")
+                 # Check the default value for the control is defined if the file is empty
+                 if os.path.getsize(filename) == 0 and default_undefined:
+                     raise ValueError(f"If file specified for {key} is empty, {control_args[key]} should be defined.")
 
-                else:
-                    raise ValueError(f"File '{filename}' for option '{key}' could not be found")
-                
         # iii. delete (process, index, limit, exclude) if not provided
         for del_flag in ["process", "index", "limit", "exclude"]:
-            if hasattr(self, del_flag) and (getattr(self, del_flag) is None):
+            if getattr(self, del_flag, None) is None:
                 delattr(self, del_flag)
 
         # iv. set read-count to default unless provided
-        if hasattr(self, "read_count") and (getattr(self, "read_count") is None):
-           setattr(self, "read_count", CavemanConstants.SPLIT_STEP_READ_COUNT) 
+        if getattr(self, "read_count", None) is None:
+            setattr(self, "read_count", CavemanConstants.SPLIT_STEP_READ_COUNT) 
 
         # v. check outdir, if exists throw error and quit
         # vi. check (flagconfig, flagtovcfconfig, germline-indel-bed) if provided
