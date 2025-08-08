@@ -25,6 +25,18 @@ class CavemanRunner():
     # so as not to overwrite the filename we get it from (!)
     normcont_value = None
 
+    # Containers for output subdirs
+    tmp_dir = None
+    results_dir = None
+    progress_dir = None
+    log_dir = None
+
+    # Containers for configs
+    cave_cfg = None
+    cave_alg = None
+    cave_parr = None
+    cave_carr = None
+
     def __init__(self, **kwargs):
         """
         Initialises the runner from allowed key word arguments
@@ -221,6 +233,19 @@ class CavemanRunner():
             setattr(self, "normcont_value", CavemanConstants.DEFAULT_NORMCONT)
 
         #### xi. create objects for output files, starting with tmp dir in outdir
+        setattr(self, "tmp_dir", f"{self.outdir}/tmpCaveman")
+        setattr(self, "results_dir", f"{self.tmp_dir}/results")
+        setattr(self, "progress_dir", f"{self.tmp_dir}/progresss")
+
+        if getattr(self, "logs", None):
+            setattr(self, "log_dir", f"{self.tmp_dir}/{self.logs}")
+        else:
+            setattr(self, "log_dir", f"{self.tmp_dir}/logs")
+
+        setattr(self, "cave_cfg", f"{self.tmp_dir}/{CavemanConstants.CAVEMAN_CONFIG}")
+        setattr(self, "cave_alg", f"{self.tmp_dir}/{CavemanConstants.CAVEMAN_ALG_BEAN}")
+        setattr(self, "cave_parr", f"{self.tmp_dir}/{CavemanConstants.CAVEMAN_PROB_ARR}")
+        setattr(self, "cave_carr", f"{self.tmp_dir}/{CavemanConstants.CAVEMAN_COV_ARR}")
 
         #### xii. check process - if provided - is valid, set max index if it is provided otherwise default
 
