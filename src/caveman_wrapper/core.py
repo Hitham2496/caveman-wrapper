@@ -110,20 +110,37 @@ class CavemanRunner():
         if not os.path.isfile(self.reference):
             raise ValueError("Reference file {self.reference} could not be found")
 
+        if not (os.path.isfile("f{self.tumour_bam}.bai") or
+                os.path.isfile("f{self.tumour_bam}.csi") or
+                os.path.isfile("f{self.tumour_bam}.crai")):
+            raise ValueError("Tumour BAM file {self.tumour_bam} could not be found")
+
         if not (os.path.isfile("f{self.normal_bam}.bai") or
                 os.path.isfile("f{self.normal_bam}.csi") or
                 os.path.isfile("f{self.normal_bam}.crai")):
             raise ValueError("Tumour BAM file {self.normal_bam} could not be found")
 
-        if not (os.path.isfile("f{self.normal_bam}.bai") or
-                os.path.isfile("f{self.normal_bam}.csi") or
-                os.path.isfile("f{self.normal_bam}.crai")):
-            raise ValueError("Tumour BAM file {self.tumour_bam} could not be found")
-
         if not os.path.isfile(self.ignore_file):
             raise ValueError("Ignore file {self.ignore_file} could not be found")
         
         # ii. check (tumcn, normcn) exists if provided
+        control_args = {"tumour_cn" : "tum_cn_default" , "normal_cn" : "norm_cn_default" }
+        for key in control_args:
+            # Check if tumour and normal control exist and are defined
+            if hasattr(self, key) and (getattr(self, key) is not None):
+                filename = getattr(self, key)
+
+                # Check the file actually exists
+                if os.path.isfile(filename):
+                    default_defined = (not hasattr(self, control_args[key])) or (getattr(self, control_args[key]) is None)
+
+                    # Check the default value for the control is defined if the file is empty
+                    if os.path.getsize(filename) == 0 and default_defined:
+                        raise ValueError(f"If file specified for {key} is empty, {control_args[key]} should be defined.")
+
+                else:
+                    raise ValueError(f"File '{filename}' for option '{key}' could not be found")
+                
 
         # iii. set (process, index, limit, exclude) if provided
         # iv. set read-count to default unless provided
