@@ -97,7 +97,7 @@ class CavemanRunner():
         Setup caveman with the parameters identified at initialisation
         """
         
-        # i. check files (ref, tumbam, normbam, ignore) exists
+        #### i. check files (ref, tumbam, normbam, ignore) exists
         for item in ["noflag", "noclean"]: 
             if (getattr(self, item, None) is None):
                 setattr(self, item, False)
@@ -121,7 +121,7 @@ class CavemanRunner():
         if not os.path.isfile(self.ignore_file):
             raise ValueError("Ignore file {self.ignore_file} could not be found")
         
-        # ii. check (tumcn, normcn) exists if provided
+        #### ii. check (tumcn, normcn) exists if provided
         control_args = {"tumour_cn" : "tum_cn_default" , "normal_cn" : "norm_cn_default" }
         for key in control_args:
             # Check if tumour and normal control exist and are defined
@@ -137,26 +137,61 @@ class CavemanRunner():
                  if os.path.getsize(filename) == 0 and default_undefined:
                      raise ValueError(f"If file specified for {key} is empty, {control_args[key]} should be defined.")
 
-        # iii. delete (process, index, limit, exclude) if not provided
+        #### iii. delete (process, index, limit, exclude) if not provided
         for del_flag in ["process", "index", "limit", "exclude"]:
             if getattr(self, del_flag, None) is None:
                 delattr(self, del_flag)
 
-        # iv. set read-count to default unless provided, check germindelbed
+        #### iv. set read-count to default unless provided
         if getattr(self, "read_count", None) is None:
             setattr(self, "read_count", CavemanConstants.SPLIT_STEP_READ_COUNT) 
 
-        germindel_filename = getattr(self, "germindel", None)
-        if not os.path.isfile(germindel_filename):
-            raise ValueError(f"File '{germindel_filename}' for option 'germindel' could not be found")
+        #### v. check outdir, if exists and non-empty throw error and quit
+        outdir = getattr(self, "outdir", None)
+        check_outdir(outdir)
+        
+        log_dir = f"{outdir}/logs"
+        if os.isdir(log_dir):
+            raise OSError(f"Presence of {log_dir} indicates that an analysis has been completed, delete to rerun")
 
-        # v. check outdir, if exists throw error and quit
-        # vi. check (flagconfig, flagtovcfconfig, germline-indel-bed) if provided
-        # vii. check reference provided is the fasta fai file
+        #### vi. check (flagconfig, flagtovcfconfig, germline-indel-bed) if provided
+        for config_arg in ["flagConfig", "flagToVcfConfig", "germindel"]:
+            config_val = getattr(self, config_arg, None)
+            if not os.path.isfile(config_val):
+                raise ValueError(f"File '{config_val}' for option '{config_arg}' could not be found")
+
+        # vii. get assembly and check reference provided is the fasta fai file
+
+        # TODO: Implement more than a stub for this function
+        self.get_species_assembly_from_bam()
+
+        for bam_key in ["species", "species_assembly"]:
+            if getattr(self, bam_key, None) is None:
+                raise ValueError(f"{bam_key} must be defined, see BAM header for options")
+        
+        if getattr(self, "seqType", None) not in CavemanConstants.VALID_SEQ_TYPES:
+            raise ValueError(f"seqType must be one of: {', '.join(CavemanConstants.VALID_SEQ_TYPES)}")
+
         # viii. check protocols provided for (normprot, tumprot) otherwise set to default
+        for protocol in ["tumour_protocol", "normal_protocol"]:
+
+            protocol_option = getattr(self, protocol, None)
+
+            if protocol_option is None:
+                setattr(protocol, CavemanConstants.DEFAULT_PROTOCOL)
+
+            else if protocol_option not in CavemanConstants.VALID_PROTOCOLS:
+                raise ValueError(f"{protocol} option '{protocol_option}' is not recognised, protocols "
+                                 f"must be one of: {', '.join(CavemanConstants.VALID_PROTOCOLS)}")
+
         # ix. set threads to 1 unless specified
+        if getattr(self, "threads", None) is None:
+            setattr(self, "threads", 1)
+
         # x. if normcont is defined, try to extract it from the file, fail if it doesn't work
+
         # xi. create objects for output files, starting with tmp dir in outdir
+
         # xii. check process - if provided - is valid, set max index if it is provided otherwise default
 
         # VALID_PROCESSES = ["setup", "split", "split_concat", "mstep", "merge", "estep", "merge_results", "add_ids", "flag"]
@@ -165,6 +200,16 @@ class CavemanRunner():
                 raise ValueError(f"Process '{self.process}' is not a valid caveman process")
 
         # xiii. make paths!
+
+     def get_species_assembly_from_bam(self):
+         """
+         Gets species assemblies from BAM files, sets `species`, `species_assembly`
+         from reference
+         """
+         # TODO: Figure out how to implement this one with pysam?
+         # This is placeholder code for the use of the function 
+         setattr(self, "species", "human")
+         setattr(self, "species_assembly", "human_assembly")
 
 
      def run_caveman(self):
