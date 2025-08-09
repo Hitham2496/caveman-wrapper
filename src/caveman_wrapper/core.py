@@ -36,6 +36,20 @@ class CavemanRunner():
     cave_alg = None
     cave_parr = None
     cave_carr = None
+    split_list = None
+
+    # Maximum indices for processes
+    index_max = {
+        "setup" : 1,
+        "split" : -1,
+        "split_concat" : 1,
+        "mstep" : -1,
+        "merge" : 1,
+        "estep" : -1,
+        "merge_results" : 1,
+        "add_ids" : 1,
+        "flag" : 1
+    }
 
     def __init__(self, **kwargs):
         """
@@ -246,6 +260,9 @@ class CavemanRunner():
         setattr(self, "cave_alg", f"{self.tmp_dir}/{CavemanConstants.CAVEMAN_ALG_BEAN}")
         setattr(self, "cave_parr", f"{self.tmp_dir}/{CavemanConstants.CAVEMAN_PROB_ARR}")
         setattr(self, "cave_carr", f"{self.tmp_dir}/{CavemanConstants.CAVEMAN_COV_ARR}")
+        setattr(self, "split_list", f"{felf.tmp_dir}/splitList")
+
+        # TODO: subvcf, snpvcf, noanalysisbed dynamic output file generation will be implemented in member methods
 
         #### xii. check process - if provided - is valid, set max index if it is provided otherwise default
 
@@ -256,6 +273,8 @@ class CavemanRunner():
 
         # xiii. make paths!
         return
+
+
 
     def get_species_assembly_from_bam(self):
          """
