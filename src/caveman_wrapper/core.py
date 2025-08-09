@@ -268,7 +268,7 @@ class CavemanRunner():
                 raise ValueError(f"Process '{self.process}' is not a valid caveman process")
 
             if getattr(self, "index", None):
-                cur_idx_max = index_max[self.process]
+                cur_idx_max = self.index_max[self.process]
                 if cur_idx_max == -1:
                     if getattr(self, "limit", None):
                         cur_idx_max = self.limit
