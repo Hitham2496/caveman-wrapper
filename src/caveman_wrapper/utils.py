@@ -31,10 +31,33 @@ def file_line_count(filename):
 
     return contig_count
 
+def valid_index_by_factor(opt_name, opt_val, base, proc_factor=1):
+    """
+    Simplified void implementation of PCAP::Cli::valid_index_by_factor
+    which raises an error if the option value is not in the required
+    region.
+
+    Parameters
+    ----------
+    `opt_name` - `str` - 
+        Option name for the error message
+
+    `opt_val` - `str` - 
+        Value of the option provided
+
+    `base` : `int` - 
+        Base for maximum value
+
+    `proc_factor` : `int` - 
+        Multiplicative factor for the maximum calculation
+    """
+    max_val = base * (proc_factor if proc_factor else 1)
+    if not (1 <= opt_val <= max_val):
+        raise ValueError(f"Option '{opt_name}' needs to be between 1 and {max_val}")
 
 def check_outdir(directory_name):
     """
-    Simplified void implementation of PCAP::CLI::out_dir_check,
+    Simplified void implementation of PCAP::Cli::out_dir_check,
     which does not ask to overwrite an existing directory.
 
     Parameters
