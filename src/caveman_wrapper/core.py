@@ -131,9 +131,6 @@ class CavemanRunner():
             if (getattr(self, item, None) is None):
                 setattr(self, item, False)
 
-        # set working dir as object member
-        #setattr(self, working_dir, os.getcwd())
-
         if not os.path.isfile(self.reference):
             raise ValueError(f"Reference file {self.reference} could not be found")
 
@@ -278,7 +275,22 @@ class CavemanRunner():
                     else:
                         cur_idx_max = self.valid_index()
 
-        # xiii. make paths!
+                if self.index < 1 or self.index > cur_idx_max:
+                    raise ValueError(f"Based on reference and exclude option, index must be between 1 and {cur_idx_max}")
+
+                if cur_idx_max == 0:
+                    raise ValueError(f"No maximum index has been provided for the process type '{self.process}'")
+
+                valid_index_by_factor("index", self.index, cur_idx_max, 1)
+        
+        elif getattr(self, "index", None):
+            raise AttributeError(f"Index cannot be defined without a process")
+
+        #### xiii. Create paths
+        for path in [self.tmp_dir, self.results_dir, self.progress_dir, self.log_dir]:
+            if not os.path.isdir(path):
+                os.mkdir(path)
+
         return
 
     def valid_index(self):
@@ -296,7 +308,6 @@ class CavemanRunner():
             return file_line_count(self.split_list)
 
         return 0
-
 
     def get_species_assembly_from_bam(self):
          """
