@@ -265,15 +265,37 @@ class CavemanRunner():
         # TODO: subvcf, snpvcf, noanalysisbed dynamic output file generation will be implemented in member methods
 
         #### xii. check process - if provided - is valid, set max index if it is provided otherwise default
-
         # VALID_PROCESSES = ["setup", "split", "split_concat", "mstep", "merge", "estep", "merge_results", "add_ids", "flag"]
-        if self.process:
+        if getattr(self, "process", None):
             if not (self.process in CavemanConstants.VALID_PROCESSES):
                 raise ValueError(f"Process '{self.process}' is not a valid caveman process")
+
+            if getattr(self, "index", None):
+                cur_idx_max = index_max[self.process]
+                if cur_idx_max == -1:
+                    if getattr(self, "limit", None):
+                        cur_idx_max = self.limit
+                    else:
+                        cur_idx_max = self.valid_index()
 
         # xiii. make paths!
         return
 
+    def valid_index(self):
+        """
+        Checks that the index provided in options is valid, otherwise returns 0
+        """
+        # Process should already be provided when we call this method, but exit if not:
+        if getattr(self, "process", None) is None:
+            raise AttributeError(f"To calculate a valid index, the process must be provided")
+
+        if self.process == "split":
+            return file_line_count(self.reference)
+
+        elif self.process == "mstep" or self.process == "estep":
+            return file_line_count(self.split_list)
+
+        return 0
 
 
     def get_species_assembly_from_bam(self):
