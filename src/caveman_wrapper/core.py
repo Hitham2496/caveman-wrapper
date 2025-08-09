@@ -260,7 +260,7 @@ class CavemanRunner():
         setattr(self, "cave_alg", f"{self.tmp_dir}/{CavemanConstants.CAVEMAN_ALG_BEAN}")
         setattr(self, "cave_parr", f"{self.tmp_dir}/{CavemanConstants.CAVEMAN_PROB_ARR}")
         setattr(self, "cave_carr", f"{self.tmp_dir}/{CavemanConstants.CAVEMAN_COV_ARR}")
-        setattr(self, "split_list", f"{felf.tmp_dir}/splitList")
+        setattr(self, "split_list", f"{self.tmp_dir}/splitList")
 
         # TODO: subvcf, snpvcf, noanalysisbed dynamic output file generation will be implemented in member methods
 
