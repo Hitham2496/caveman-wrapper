@@ -9,26 +9,21 @@ import sys
 from dataclasses import dataclass
 
 
-def file_line_count(filename, contig_count = 0):
+def file_line_count(filename):
     """
-    Increments a contig count based on the number of lines in a seuqence file
+    Returns a contig count based on the number of lines in a seuqence file
 
     Parameters:
     ----------
     `filename` : `str` - 
         File to count the lines of, no default
 
-    `contig_count` : `int` - 
-        Count of contigous regions, defaults to zero
-
     Returns:
     -------
     `contig_count` : `int` -
-        Updated `contig_count` variable
+        Lines in the file provided, equal to the number of contigs
     """
-
-    if not isinstance(contig_count, int):
-        raise ValueError("contig_count needs to be provided as an integer")
+    contig_count = 0
 
     with open(filename) as filestream:
         for line in filestream:
