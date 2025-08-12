@@ -6,11 +6,9 @@ Core class to run caveman with parameters provided by user
 This script uses multiprocessing to ensure that CPU resource
 allocated by HPC schedulers are adequately used
 """
-import shutil
 import subprocess
 import time
 import multiprocessing
-import re
 from .utils import *
 
 class CavemanRunner():
@@ -123,8 +121,7 @@ class CavemanRunner():
     def setup_caveman_environment(self):
         """
         Setup caveman with the parameters identified at initialisation
-        """
-        
+        """ 
         #### Step 1. Check files (ref, tumbam, normbam, ignore) exist
         for item in ["noflag", "noclean"]: 
             if (getattr(self, item, None) is None):
@@ -261,7 +258,6 @@ class CavemanRunner():
         # TODO: subvcf, snpvcf, noanalysisbed dynamic output file generation will be implemented in member methods
 
         #### Step 12. check process - if provided - is valid, set max index if it is provided otherwise default
-        # VALID_PROCESSES = ["setup", "split", "split_concat", "mstep", "merge", "estep", "merge_results", "add_ids", "flag"]
         if getattr(self, "process", None):
             if not (self.process in CavemanConstants.VALID_PROCESSES):
                 raise ValueError(f"Process '{self.process}' is not a valid caveman process")
@@ -321,11 +317,22 @@ class CavemanRunner():
         """
         Runs caveman with parameters from initialisation and setup
         """
-        # Step 1. setup has been completed
+        #### Step 1. setup has been completed
 
-        # Step 2. register processes i.e. if `threads` is given, use as many processes as requested
+        #### Step 2. register processes, required for Perl, not for Python
 
-        # Step 3. create temporary reference to be cleaned if reference is in `*.gz.fai` format
+        #### Step 3. create temporary reference to be cleaned if reference is in `*.gz.fai` format
+        if re.search(".*\.gz\.fai$", self.reference):
+            tmp_ref = f"{self.tmp_dir}/genome.fa"
+            if not os.path.isfile(tmp_ref):
+                non_indexed_reference = self.reference.replace(".fai","")
+                gunzip_file(non_indexed_reference, tmp_ref)
+                # I suspect this may be required for bug-compatibility, since the reference
+                # is not in-place modified in the originl Perl code (caveman.pl:L104-114)
+                shutil.copy(self.reference, f"{tmp_ref}.fai")
+
+
+
 
         # Step 4. caveman_setup: if !process OR process == setup
 
