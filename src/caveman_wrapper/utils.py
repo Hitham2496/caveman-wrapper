@@ -12,20 +12,23 @@ import shutil
 import re
 
 
-def gunzip_file(filename):
+def gunzip_file(filename_in, filename_out):
     """
     Void method to unzip a '.gz.*' file
 
     Parameters:
     ----------
-    `filename` : `str` - 
+    `filename_in` : `str` - 
         Name of gzipped file to be unzipped
-    """
-    if not re.search(".*\.gz.*$", filename):
-        raise ValueError(f"File {filename} not xompressed in gzip format")
 
-    with gzip.open(filename, "rb") as f_in:
-        with open(filename.replace(".gz", ""), "wb") as f_out:
+    `filename_out` : `str` - 
+        Name of file to receive output of `gunzip`
+    """
+    if not re.search(".*\.gz[^a-z,A-Z,0-9].*$", filename_in):
+        raise ValueError(f"File {filename_in} not compressed in gzip format")
+
+    with gzip.open(filename_in, "rb") as f_in:
+        with open(filename_out, "wb") as f_out:
             shutil.copyfileobj(f_in, f_out)
 
 def file_line_count(filename):
