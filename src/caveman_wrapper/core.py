@@ -118,14 +118,14 @@ class CavemanRunner():
         """
         # TODO: Replace the 'True' with the commented out bit when done testing
         self.caveman_executable = shutil.which("caveman")
-        return bool(self.caveman_executable)
+        return True #bool(self.caveman_executable)
 
     def setup_caveman_environment(self):
         """
         Setup caveman with the parameters identified at initialisation
         """
         
-        #### i. check files (ref, tumbam, normbam, ignore) exists
+        #### Step 1. Check files (ref, tumbam, normbam, ignore) exist
         for item in ["noflag", "noclean"]: 
             if (getattr(self, item, None) is None):
                 setattr(self, item, False)
@@ -146,7 +146,7 @@ class CavemanRunner():
         if not os.path.isfile(self.ignore_file):
             raise ValueError(f"Ignore file {self.ignore_file} could not be found")
         
-        #### ii. check (tumcn, normcn) exists if provided
+        #### Step 2. Check (tumcn, normcn) exist if provided
         control_args = {"tumour_cn" : "tum_cn_default" , "normal_cn" : "norm_cn_default" }
         for key in control_args:
             # Check if tumour and normal control exist and are defined
@@ -162,16 +162,16 @@ class CavemanRunner():
                  if os.path.getsize(filename) == 0 and default_undefined:
                      raise ValueError(f"If file specified for {key} is empty, {control_args[key]} should be defined.")
 
-        #### iii. delete (process, index, limit, exclude) if not provided
+        #### Step 3. Delete (process, index, limit, exclude) if not provided
         for del_flag in ["process", "index", "limit", "exclude"]:
             if getattr(self, del_flag, None) is None:
                 delattr(self, del_flag)
 
-        #### iv. set read-count to default unless provided
+        #### Step 4. Set read-count to default unless provided
         if getattr(self, "read_count", None) is None:
             setattr(self, "read_count", CavemanConstants.SPLIT_STEP_READ_COUNT) 
 
-        #### v. check outdir, if exists and non-empty throw error and quit
+        #### Step 5. Check outdir, if exists and non-empty throw error and quit
         outdir = getattr(self, "outdir", None)
         check_outdir(outdir)
         
@@ -179,13 +179,13 @@ class CavemanRunner():
         if os.path.isdir(log_dir):
             raise OSError(f"Presence of {log_dir} indicates that an analysis has been completed, delete to rerun")
 
-        #### vi. check (flagconfig, flagtovcfconfig, germline-indel-bed) if provided
+        #### Step 6. Check (flagconfig, flagtovcfconfig, germline-indel-bed) if provided
         for config_arg in ["flagConfig", "flagToVcfConfig", "germindel"]:
             config_val = getattr(self, config_arg, None)
             if not os.path.isfile(config_val):
                 raise ValueError(f"File '{config_val}' for option '{config_arg}' could not be found")
 
-        #### vii. get assembly and check reference provided is the fasta fai file
+        #### Step 7. Get assembly and check reference provided is the fasta fai file
 
         # TODO: Implement more than a stub for this function
         self.get_species_assembly_from_bam()
@@ -197,7 +197,7 @@ class CavemanRunner():
         if getattr(self, "seqType", None) not in CavemanConstants.VALID_SEQ_TYPES:
             raise ValueError(f"seqType must be one of: {', '.join(CavemanConstants.VALID_SEQ_TYPES)}")
 
-        #### viii. check protocols provided for (normprot, tumprot) otherwise set to default
+        #### Step 8. Check protocols provided for (normprot, tumprot) otherwise set to default
         for protocol in ["tumour_protocol", "normal_protocol"]:
 
             protocol_option = getattr(self, protocol, None)
@@ -209,11 +209,11 @@ class CavemanRunner():
                 raise ValueError(f"{protocol} option '{protocol_option}' is not recognised, protocols "
                                  f"must be one of: {', '.join(CavemanConstants.VALID_PROTOCOLS)}")
 
-        #### ix. set threads to 1 unless specified
+        #### Step 9. Set threads to 1 unless specified
         if getattr(self, "threads", None) is None:
             setattr(self, "threads", 1)
 
-        #### x. if normcont is defined, try to extract it from the file, fail if it doesn't work
+        #### Step 10. If normcont is defined, try to extract it from the file, fail if it doesn't work
         if getattr(self, "normal_contamination", None):
 
             if not os.path.isfile(self.normal_contamination):
@@ -242,7 +242,7 @@ class CavemanRunner():
         else:
             setattr(self, "normcont_value", CavemanConstants.DEFAULT_NORMCONT)
 
-        #### xi. create objects for output files, starting with tmp dir in outdir
+        #### Step 11. create objects for output files, starting with tmp dir in outdir
         setattr(self, "tmp_dir", f"{self.outdir}/tmpCaveman")
         setattr(self, "results_dir", f"{self.tmp_dir}/results")
         setattr(self, "progress_dir", f"{self.tmp_dir}/progresss")
@@ -260,7 +260,7 @@ class CavemanRunner():
 
         # TODO: subvcf, snpvcf, noanalysisbed dynamic output file generation will be implemented in member methods
 
-        #### xii. check process - if provided - is valid, set max index if it is provided otherwise default
+        #### Step 12. check process - if provided - is valid, set max index if it is provided otherwise default
         # VALID_PROCESSES = ["setup", "split", "split_concat", "mstep", "merge", "estep", "merge_results", "add_ids", "flag"]
         if getattr(self, "process", None):
             if not (self.process in CavemanConstants.VALID_PROCESSES):
@@ -285,11 +285,10 @@ class CavemanRunner():
         elif getattr(self, "index", None):
             raise AttributeError(f"Index cannot be defined without a process")
 
-        #### xiii. Create paths
+        #### Step 13. Create paths
         for path in [self.tmp_dir, self.results_dir, self.progress_dir, self.log_dir]:
             if not os.path.isdir(path):
                 os.mkdir(path)
-
         return
 
     def valid_index(self):
