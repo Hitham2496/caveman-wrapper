@@ -7,7 +7,26 @@ import argparse
 import os
 import sys
 from dataclasses import dataclass
+import gzip
+import shutil
+import re
 
+
+def gunzip_file(filename):
+    """
+    Void method to unzip a '.gz.*' file
+
+    Parameters:
+    ----------
+    `filename` : `str` - 
+        Name of gzipped file to be unzipped
+    """
+    if not re.search(".*\.gz.*$", filename):
+        raise ValueError(f"File {filename} not xompressed in gzip format")
+
+    with gzip.open(filename, "rb") as f_in:
+        with open(filename.replace(".gz", ""), "wb") as f_out:
+            shutil.copyfileobj(f_in, f_out)
 
 def file_line_count(filename):
     """
