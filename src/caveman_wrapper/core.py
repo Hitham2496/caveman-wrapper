@@ -55,7 +55,6 @@ class CavemanRunner():
         """
         Initialises the runner from allowed key word arguments
         """
-
         # See if the user has asked for help before doing any more checking
         # Exit after printing help message
         if "help" in kwargs:
@@ -88,7 +87,7 @@ class CavemanRunner():
 
             setattr(self, key, kwargs[key])
 
-        self.setup_caveman()
+        self.setup_caveman_environment()
 
     def print_help_message(self):
         """
@@ -119,9 +118,9 @@ class CavemanRunner():
         """
         # TODO: Replace the 'True' with the commented out bit when done testing
         self.caveman_executable = shutil.which("caveman")
-        return True # bool(self.caveman_executable)
+        return bool(self.caveman_executable)
 
-    def setup_caveman(self):
+    def setup_caveman_environment(self):
         """
         Setup caveman with the parameters identified at initialisation
         """
