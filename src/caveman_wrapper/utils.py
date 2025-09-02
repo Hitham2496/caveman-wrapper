@@ -10,6 +10,8 @@ from dataclasses import dataclass
 import gzip
 import shutil
 import re
+import inspect
+from pathlib import Path
 
 
 def gunzip_file(filename_in, filename_out):
