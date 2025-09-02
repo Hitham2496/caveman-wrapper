@@ -448,7 +448,16 @@ class CavemanRunner():
         """
         Loads the file of excludes and returns the exclude pattern
         """
-        return []
+        exclude_patterns = []
+
+        if getattr(self, "exclude", None) is None:
+            return exclude_patterns
+
+        for pattern in self.exclude.split(","):
+            pattern.replace("%", ".+")
+            exclude_patterns.append(pattern)
+
+        return exclude_patterns
 
     def valid_seq_indices(self):
         """
