@@ -8,7 +8,7 @@ allocated by HPC schedulers are adequately used
 """
 import subprocess
 import time
-import multiprocessing
+from multiprocessing import Pool
 from .utils import *
 
 class CavemanRunner():
@@ -35,6 +35,9 @@ class CavemanRunner():
     cave_parr = None
     cave_carr = None
     split_list = None
+
+    # Container for valid fai indices
+    valid_fai_idx = None
 
     # Maximum indices for processes
     index_max = {
@@ -321,6 +324,7 @@ class CavemanRunner():
         Runs caveman with parameters from initialisation and setup
         """
         no_process = getattr(self, "process", None) is None
+
         #### Step 1. setup has been completed
 
         #### Step 2. register processes, required for Perl, not for Python
@@ -341,6 +345,11 @@ class CavemanRunner():
 
         # Step 5. caveman_split: if !process OR process == split
         if no_process or getattr(self, "process", None) == "split":
+
+            valid_indices = self.valid_seq_indices()
+            contig_count = len(valid_indices)
+            setattr(self, "valid_fai_idx", valid_indices)
+
             self.caveman_split()
 
         # Step 6. split_concat: if !process OR process == split_concat
@@ -363,10 +372,24 @@ class CavemanRunner():
         """
         print("I am setting up caveman yay!")
 
-    def caveman_split(self):
+    def caveman_split(self, index=None):
         """
         Runs CAVEMAN_SPLIT from the parameters used at initialisation
         """
+        if index and index != self.index:
+            return True
+
+        if success_exists(self.progress_dir, index):
+            return True
+
+        # We have checked in initialisation if caveman is in the path
+        # so we do not need to do it again here.
+
+        if self.threads > 1:
+            with Pool(processes=self.threads) as pool:
+                for idx, value in enumerate(self.valid_fai_idx):
+
+
         print("I am splitting caveman yay!")
 
    # def caveman_mstep(self):

@@ -11,6 +11,7 @@ import gzip
 import shutil
 import re
 import inspect
+import subprocess
 from pathlib import Path
 
 
@@ -145,6 +146,35 @@ def touch_success(tmp, *indices):
     marker.parent.mkdir(parents=True, exist_ok=True)
     marker.touch()
     return True
+
+def worker(command, index):
+    """
+    A worker method to run a specific command with a given
+    index to report errors.
+
+    Parameters:
+    ----------
+    `command` : `str` - 
+        Command to be executed, as one string
+
+    `index` : `int` - 
+        Index of current run to report error with
+
+    Returns:
+    --------
+    `dict` - 
+        Dictionary with the provided index as the key and
+        the value being True if the job finished successfully,
+        False otherwise. If False, the exception is returned
+        in the dictionary alongside the index.
+    """
+    try:
+        subprocess.run(command.split(" "), check=True)
+        return {index: True}
+
+    except Exception as e:
+        return {index : False, "error" : repr(e), "message" : e}
+
 
 # Class for constants, the valid params for caveman running
 class CavemanConstants():
