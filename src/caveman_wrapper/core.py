@@ -89,7 +89,7 @@ class CavemanRunner():
             setattr(self, key, kwargs[key])
 
         self.setup_caveman_environment()
-        self.run_caveman()
+        #self.run_caveman()
 
     def print_help_message(self):
         """
@@ -374,23 +374,50 @@ class CavemanRunner():
 
     def caveman_split(self, index=None):
         """
-        Runs CAVEMAN_SPLIT from the parameters used at initialisation
+        Runs CAVEMAN_SPLIT from the parameters used at initialisation,
+        or optionally from a specified index
         """
-        if index and index != self.index:
-            return True
 
-        if success_exists(self.progress_dir, index):
-            return True
+        # index (in +1 register) passed to worker
+        # command passed to worker
+        # index list restricted to one index if provided by user
+
+        index_list = None
+        if index:
+            index_list = [self.valid_fai_idx[index-1]]
+            if index != self.index:
+                return True
+            if success_exists(self.progress_dir, index):
+                return True
+        else:
+            index_list = self.valid_fai_idx
 
         # We have checked in initialisation if caveman is in the path
         # so we do not need to do it again here.
 
-        if self.threads > 1:
-            with Pool(processes=self.threads) as pool:
-                for idx, value in enumerate(self.valid_fai_idx):
+        errors_raised = False
+        with Pool(processes=self.threads) as pool:
 
+            async_results = []
+            for value in index_list:
 
-        print("I am splitting caveman yay!")
+                command = f"caveman split -i {value} "
+                           "-f {self.cave_cfg} "
+                           "-e {self.read_count}"
+
+                result = pool.apply_async(worker, args=(command, index,))
+                async_results.append(result)
+
+            for item in async_results:
+                final_result = item.get()
+                if not final_result["success"]:
+                    print(f"Split stage failed for {final_result['index']}", file=sys.stderr)
+                    print(f"Error: {final_result['error']}", file=sys.stderr)
+                    errors_raised = True
+                else:
+                    touch_success(self.progress_dir, final_result["index"])
+
+        return True
 
    # def caveman_mstep(self):
    #     """
