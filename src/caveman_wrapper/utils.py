@@ -163,17 +163,16 @@ def worker(command, index):
     Returns:
     --------
     `dict` - 
-        Dictionary with the provided index as the key and
-        the value being True if the job finished successfully,
-        False otherwise. If False, the exception is returned
-        in the dictionary alongside the index.
+        Dictionary containing entries for the provided index,
+        the success status of the job, and (if the job has failed)
+        the associated exception.
     """
     try:
         subprocess.run(command.split(" "), check=True)
-        return {index: True}
+        return {"index" : index, "success": True}
 
     except Exception as e:
-        return {index : False, "error" : repr(e), "message" : e}
+        return {"index": index, "success" : False, "error" : repr(e), "message" : e}
 
 
 # Class for constants, the valid params for caveman running
