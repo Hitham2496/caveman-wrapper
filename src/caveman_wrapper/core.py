@@ -86,6 +86,7 @@ class CavemanRunner():
             setattr(self, key, kwargs[key])
 
         self.setup_caveman_environment()
+        self.run_caveman()
 
     def print_help_message(self):
         """
@@ -160,9 +161,11 @@ class CavemanRunner():
                      raise ValueError(f"If file specified for {key} is empty, {control_args[key]} should be defined.")
 
         #### Step 3. Delete (process, index, limit, exclude) if not provided
-        for del_flag in ["process", "index", "limit", "exclude"]:
-            if getattr(self, del_flag, None) is None:
-                delattr(self, del_flag)
+        #### This is not needed since the attributes will not exist if not provided
+
+        #for del_flag in ["process", "index", "limit", "exclude"]:
+        #    if getattr(self, del_flag, None) is None:
+        #        delattr(self, del_flag)
 
         #### Step 4. Set read-count to default unless provided
         if getattr(self, "read_count", None) is None:
@@ -317,6 +320,7 @@ class CavemanRunner():
         """
         Runs caveman with parameters from initialisation and setup
         """
+        no_process = getattr(self, "process", None) is None
         #### Step 1. setup has been completed
 
         #### Step 2. register processes, required for Perl, not for Python
@@ -331,12 +335,13 @@ class CavemanRunner():
                 # is not in-place modified in the originl Perl code (caveman.pl:L104-114)
                 shutil.copy(self.reference, f"{tmp_ref}.fai")
 
-
-
-
         # Step 4. caveman_setup: if !process OR process == setup
+        if no_process or getattr(self, "process", None) == "setup":
+            self.caveman_setup()
 
         # Step 5. caveman_split: if !process OR process == split
+        if no_process or getattr(self, "process", None) == "split":
+            self.caveman_split()
 
         # Step 6. split_concat: if !process OR process == split_concat
         
@@ -352,15 +357,17 @@ class CavemanRunner():
 
         # Step 12. cleanup: if !noclean
 
-   # def caveman_setup(self):
-   #     """
-   #     Runs CAVEMAN_SETUP from the parameters used at initialisation
-   #     """
+    def caveman_setup(self):
+        """
+        Runs CAVEMAN_SETUP from the parameters used at initialisation
+        """
+        print("I am setting up caveman yay!")
 
-   # def caveman_split(self):
-   #     """
-   #     Runs CAVEMAN_SPLIT from the parameters used at initialisation
-   #     """
+    def caveman_split(self):
+        """
+        Runs CAVEMAN_SPLIT from the parameters used at initialisation
+        """
+        print("I am splitting caveman yay!")
 
    # def caveman_mstep(self):
    #     """
@@ -437,15 +444,29 @@ class CavemanRunner():
    #     Check limited indices for the split list count
    #     """
 
-   # def load_exclude(self):
-   #     """
-   #     Loads the file of excludes and returns the exclude pattern
-   #     """
+    def load_exclude(self):
+        """
+        Loads the file of excludes and returns the exclude pattern
+        """
+        return []
 
-   # def valid_seq_indices(self):
-   #     """
-   #     Checks that the sequence indices provided are valid
-   #     """
+    def valid_seq_indices(self):
+        """
+        Checks that the sequence indices provided are valid
+        """
+        valid_indices = []
+
+        exclude_patterns = self.load_exclude()
+
+        with open(self.reference, "r") as ifs_reference:
+            # Line numbers start from 1
+            for idx, line in enumerate(ifs_reference, start=1):
+                seq_name = line.split('\t')[0]
+                # Check if it matches any exclude pattern
+                if not any(pattern.match(seq_name) for pattern in exclude_patterns):
+                    valid_indices.append(idx)
+
+        return valid_indices
 
    # def extend_no_analysis(self):
    #     """
