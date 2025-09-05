@@ -530,8 +530,7 @@ class CavemanRunner():
         Parameters:
         -----------
         `index` : `int` -
-            Index of `self.valid_vai_idx`, starting from 1, to run split
-            method on.
+            Starting index for limited x step check.
 
         Returns:
         --------
@@ -615,10 +614,117 @@ class CavemanRunner():
 
         return touch_success(self.progress_dir, final_result["index"])
  
-   # def caveman_estep(self):
-   #     """
-   #     Runs CAVEMAN_ESTEP from the parameters used at initialisation
-   #     """
+    def caveman_estep(self, index=None):
+        """
+        Runs CAVEMAN_ESTEP from the parameters used at initialisation,
+        or optionally from a specified index (starting from 1).
+
+        If `index` is provided, the caveman split workflow is run with
+        the initialisation settings, for only the value of valid_fai_idx
+        at position `index - 1`. The number of processes for the pool
+        is set to 1.
+
+        Otherwise, a pool of `self.threads` size is instantiated and
+        caveman split is run asynchronously for each value of valid_fai_idx
+        as calculated from the initialisation
+
+        A bool is returned, trivially equal to True/False if the run is/is
+        not successful to maintain consistency with Perl wrapper.
+
+        Parameters:
+        -----------
+        `index` : `int` -
+            Starting index for limited x step check.
+
+        Returns:
+        --------
+        `bool` - 
+            True if the run is successful, False if errors arise in running
+        """
+        index_list = None 
+        num_procs = self.threads
+        if index:
+            index_list = self.limited_xstep_indicies(index)
+            if index != self.index:
+                return True
+        else:
+            index_list = self.valid_fai_idx
+
+        # If we only have one index to consider, only one thread is required.
+        if len(index_list) == 1:
+            num_procs = 1
+
+        # In case function is being called manually, check caveman
+        # is still in the path.
+        if not self.check_caveman_in_path():
+            raise FileNotFoundError("`caveman` could not be found in $PATH")
+
+        errors_raised = False
+        with Pool(processes=num_procs) as pool:
+            async_results = []
+            for idx, value in enumerate(index_list):
+                # If run for current index has been done, continue
+                if success_exists(self.progress_dir, idx+1):
+                    continue
+
+                command = f"caveman estep -i {value} "
+                          f"-k {self.normcont_value} "
+                          f"-g {self.cave_carr} "
+                          f"-o {self.cave_parr} "
+                          f"-v {self.species_assembly} "
+                          f"-w {self.species} "
+                          f"-f {self.cave_cfg} "
+                          f"-l {self.normal_protocol} "
+                          f"-r {self.tumour_protocol} "
+
+                if getattr(self, "norm_cn_default", None):
+                    command += f"-n {self.norm_cn_default} "
+                
+                if getattr(self, "tum_cn_default", None):
+                    command += f"-t {self.tum_cn_default} "
+
+                if getattr(self, "priorMut", None):
+                    command += f"-c {self.priorMut} "
+
+                if getattr(self, "priorSnp", None):
+                    command += f"-d {self.priorSnp} "
+
+                if getattr(self, "nplat", None):
+                    command += f"-P {self.nplat} "
+
+                if getattr(self, "tplat", None):
+                    command += f"-T {self.tplat} "
+
+                if getattr(self, "mpc", None):
+                    command += f"-p {self.mpc} "
+
+                if getattr(self, "spc", None):
+                    command += f"-q {self.spc} "
+
+                if getattr(self, "debug_cave", None):
+                    command += f"-s "
+
+                result = pool.apply_async(worker, args=(self.log_dir, command, idx,))
+                async_results.append(result)
+
+            for item in async_results:
+
+                final_result = item.get()
+
+                if not final_result["success"]:
+                    print(f"Split stage failed for {final_result['index']}", file=sys.stderr)
+                    print(f"Error: {final_result['error']}", file=sys.stderr)
+                    errors_raised = True
+                elif not touch_success(self.progress_dir, final_result["index"]):
+                    # touch_success is called, so if not successful count as an error
+                    errors_raised = True
+                else:
+                    # Explicitly show we continue if touch_success is True
+                    continue
+
+        successful_run = not errors_raised
+
+        return successful_run
 
    # def caveman_merge_results(self):
    #     """
