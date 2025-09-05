@@ -18,7 +18,6 @@ class CavemanRunner():
     Class to initialise, distribute resources for, and run caveman
     on HPC, based on the original wrapper keyword arguments.
     """
-    #TODO: Log directory is not used yet, this will be implemented later
 
     HELP_MESSAGE = f"Wrapper for CaVEMan, usage: caveman.py [kwargs]\n{CavemanFlags.short_flags}"
 
@@ -374,6 +373,8 @@ class CavemanRunner():
             self.caveman_split()
 
         # Step 6. split_concat: if !process OR process == split_concat
+        if no_process or getattr(self, "process", None) == "split_concat":
+            self.concat()
         
         # Step 7. file_line_count: if !process OR process in [mstep, estep]
 
@@ -422,7 +423,7 @@ class CavemanRunner():
 
         # Only one process is required for setup, set index to 0.
         index = 0
-        final_result = worker(command, index)
+        final_result = worker(self.log_dir, command, index)
 
         if not final_result["success"]:
             return False
@@ -483,7 +484,7 @@ class CavemanRunner():
                           f"-f {self.cave_cfg} "
                           f"-e {self.read_count}"
 
-                result = pool.apply_async(worker, args=(command, index,))
+                result = pool.apply_async(worker, args=(self.log_dir, command, index,))
                 async_results.append(result)
 
             for item in async_results:
@@ -508,10 +509,31 @@ class CavemanRunner():
    #     Runs CAVEMAN_MSTEP from the parameters used at initialisation
    #     """
 
-   # def caveman_merge(self):
-   #     """
-   #     Runs CAVEMAN_MERGE from the parameters used at initialisation
-   #     """ 
+    def caveman_merge(self):
+        """
+        Runs CAVEMAN_MERGE from the parameters used at initialisation
+        """ 
+        # In case function is being called manually, check caveman
+        # is still in the path.
+        if not self.check_caveman_in_path():
+            raise FileNotFoundError("`caveman` could not be found in $PATH")
+
+        if success_exists(self.progress_dir, 0):
+            return True
+        
+        command = f"caveman merge "
+                  f"-c {self.cave_carr} "
+                  f"-p {self.cave_parr} "
+                  f"-f {self.cave_cfg}"
+
+        # Only one process is required for setup, set index to 0.
+        index = 0
+        final_result = worker(command, index)
+
+        if not final_result["success"]:
+            return False
+
+        return touch_success(self.progress_dir, final_result["index"])
  
    # def caveman_estep(self):
    #     """
@@ -543,10 +565,25 @@ class CavemanRunner():
    #     Runs FILE_COUNT from the parameters used at initialisation
    #     """
 
-   # def concat(self):
-   #     """
-   #     Runs concatenation for files from caveman running
-   #     """
+    def concat(self):
+        """
+        Runs concatenation for files from caveman running
+        """
+        if success_exists(self.progress_dir, 0):
+            return True
+        
+        # Concatenate all {self.split_list}.* files to {self.split_list}
+        command = f"cat {self.split_list}.* > {self.split_list}"
+
+        # Only one process is required for setup, set index to 0.
+        index = 0
+        final_result = worker(self.log_dir, command, index)
+
+        if not final_result["success"]:
+            return False
+
+        return touch_success(self.progress_dir, final_result["index"])
+
 
    # def concat_flagged(self):
    #     """

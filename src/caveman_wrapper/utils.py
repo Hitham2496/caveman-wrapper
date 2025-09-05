@@ -147,13 +147,17 @@ def touch_success(tmp, *indices):
     marker.touch()
     return True
 
-def worker(command, index):
+def worker(tmp, command, index):
     """
     A worker method to run a specific command with a given
     index to report errors.
 
     Parameters:
     ----------
+    `tmp` : `str` - 
+        Directory into which logs should be written for stdout
+        and stderr.
+
     `command` : `str` - 
         Command to be executed, as one string
 
@@ -168,7 +172,11 @@ def worker(command, index):
         the associated exception.
     """
     try:
-        subprocess.run(command.split(" "), check=True)
+        marker = get_marker_filename(tmp, *indices)
+
+        with open(f"{marker}.out", "w") as out, open(f"{marker}.err", "w") as err:
+            subprocess.run(command.split(" "), check=True, stdout=out, stderr=err)
+
         return {"index" : index, "success": True}
 
     except Exception as e:
