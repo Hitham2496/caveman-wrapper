@@ -678,10 +678,39 @@ class CavemanRunner():
    #     Check limited indices for the split list count
    #     """
 
-   # def limited_indices(self):
-   #     """
-   #     Checks whether the index is not greater than the limit or lower than 1
-   #     """
+    def limited_indices(self, index, count):
+        """
+        Returns a list of indices starting from `index`,
+        incrementing by `self.limit` if it exists, up to and
+        including `count`, but not exceeding it.
+
+        Parameters:
+        -----------
+        `index` : `int` - 
+            Starting index to be checked from.
+
+        `count` : `int` - 
+            The number of indices to check.
+
+        Returns:
+        --------
+        `indices` : `list` - 
+            List of indices with limit imposed.
+        """
+        indices = []
+        if getattr(self, "limit", None) is None:
+            indices.append(index)
+            return indices
+
+        if index < 1 or (getattr(self, "limit", None) and self.limit <= 0):
+            return indices
+
+        base = index
+        while base <= count:
+            indices.append(base)
+            base += self.limit
+
+        return indices
 
    # def limited_flag_indices(self):
    #     """
