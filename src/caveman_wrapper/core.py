@@ -479,17 +479,22 @@ class CavemanRunner():
         errors_raised = False
         with Pool(processes=num_procs) as pool:
             async_results = []
-            for value in index_list:
+            for idx, value in enumerate(index_list):
+                # If run for current index has been done, continue
+                if success_exists(self.progress_dir, idx+1):
+                    continue
 
                 command = f"caveman split -i {value} "
                           f"-f {self.cave_cfg} "
                           f"-e {self.read_count}"
 
-                result = pool.apply_async(worker, args=(self.log_dir, command, index,))
+                result = pool.apply_async(worker, args=(self.log_dir, command, idx+1,))
                 async_results.append(result)
 
             for item in async_results:
+
                 final_result = item.get()
+
                 if not final_result["success"]:
                     print(f"Split stage failed for {final_result['index']}", file=sys.stderr)
                     print(f"Error: {final_result['error']}", file=sys.stderr)
@@ -533,20 +538,18 @@ class CavemanRunner():
         `bool` - 
             True if the run is successful, False if errors arise in running
         """
-        return False
-        #index_list = None
-        #num_procs = self.threads
-        #if index:
-        #    index_list = [self.valid_fai_idx[index-1]]
-        #    num_procs = 1
-        #    if index != self.index:
-        #        return True
-        #    if success_exists(self.progress_dir, index):
-        #        return True
-        #else:
-        #    index_list = self.valid_fai_idx
+        index_list = None 
+        num_procs = self.threads
+        if index:
+            index_list = self.limited_xstep_indicies(index)
+            if index != self.index:
+                return True
+        else:
+            index_list = self.valid_fai_idx
 
-
+        # If we only have one index to consider, only one thread is required.
+        if len(index_list) == 1:
+            num_procs = 1
 
         # In case function is being called manually, check caveman
         # is still in the path.
@@ -556,23 +559,27 @@ class CavemanRunner():
         errors_raised = False
         with Pool(processes=num_procs) as pool:
             async_results = []
-            for value in index_list:
+            for idx, value in enumerate(index_list):
+                # If run for current index has been done, continue
+                if success_exists(self.progress_dir, idx+1):
+                    continue
 
                 command = f"caveman mstep -i {value} "
-                          f"-f {self.cave_cfg} "
-                          f"-e {self.read_count}"
+                          f"-f {self.cave_cfg}"
 
-                result = pool.apply_async(worker, args=(self.log_dir, command, index,))
+                result = pool.apply_async(worker, args=(self.log_dir, command, idx,))
                 async_results.append(result)
 
             for item in async_results:
+
                 final_result = item.get()
+
                 if not final_result["success"]:
                     print(f"Split stage failed for {final_result['index']}", file=sys.stderr)
                     print(f"Error: {final_result['error']}", file=sys.stderr)
                     errors_raised = True
                 elif not touch_success(self.progress_dir, final_result["index"]):
-                    # touch_success os called, so if not successful count as an error
+                    # touch_success is called, so if not successful count as an error
                     errors_raised = True
                 else:
                     # Explicitly show we continue if touch_success is True
@@ -581,7 +588,6 @@ class CavemanRunner():
         successful_run = not errors_raised
 
         return successful_run
-
 
     def caveman_merge(self):
         """
@@ -657,7 +663,6 @@ class CavemanRunner():
             return False
 
         return touch_success(self.progress_dir, final_result["index"])
-
 
    # def concat_flagged(self):
    #     """
