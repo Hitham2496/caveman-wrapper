@@ -209,8 +209,6 @@ class CavemanConstants():
     IDS_MUTS_GZ = ".muts.ids.vcf.gz"
     IDS_MUTS_TBI = ".muts.ids.vcf.gz.tbi"
     NO_ANALYSIS = ".no_analysis.bed"
-    # TODO: Figure out where this should live later
-    #SP_ASS_MESSAGE = qq{%s defined at commandline (%s) does not match that in the BAM file (%s). Defaulting to BAM file value.\n}
 
 
 @dataclass

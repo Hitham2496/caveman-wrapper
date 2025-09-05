@@ -9,6 +9,8 @@ allocated by HPC schedulers are adequately used
 import subprocess
 import time
 from multiprocessing import Pool
+import pysam
+import warnings
 from .utils import *
 
 class CavemanRunner():
@@ -314,10 +316,27 @@ class CavemanRunner():
          Gets species assemblies from BAM files, sets `species`, `species_assembly`
          from reference
          """
-         # TODO: Figure out how to implement this one with pysam?
-         # This is placeholder code for the use of the function 
-         setattr(self, "species", "human")
-         setattr(self, "species_assembly", "human_assembly")
+         bam = pysam.AlignmentFile(self.tumour_bam, "rb")
+         header = bam.header
+         sq_entries = header.get('SQ', [])
+
+         for entry in sq_entries:
+             if "AS" in entry:
+                 assembly = entry["AS"]
+                 if getattr(self, "species_assembly", None) != assembly:
+                     warnings.warn(SP_ASS_MESSAGE.format("Assembly", opts["species-assembly"], assembly))
+                 setattr(self, "species_assembly", assembly)
+
+             if "SP" in entry:
+                 species = entry["SP"]
+                 if getattr(self, "species", None) != species:
+                     warnings.warn(SP_ASS_MESSAGE.format("Species", opts["species"], species))
+                 setattr(self, "species", species)
+
+             # Only need to process the first sequence line.
+             break
+
+         return
 
     def run_caveman(self):
         """
