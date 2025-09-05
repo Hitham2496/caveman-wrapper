@@ -413,8 +413,10 @@ class CavemanRunner():
             method on.
         """
         index_list = None
+        num_procs = self.threads
         if index:
             index_list = [self.valid_fai_idx[index-1]]
+            num_procs = 1
             if index != self.index:
                 return True
             if success_exists(self.progress_dir, index):
@@ -428,8 +430,7 @@ class CavemanRunner():
             raise FileNotFoundError("`caveman` could not be found in $PATH")
 
         errors_raised = False
-        with Pool(processes=self.threads) as pool:
-
+        with Pool(processes=num_procs) as pool:
             async_results = []
             for value in index_list:
 
