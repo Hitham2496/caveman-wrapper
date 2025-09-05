@@ -395,13 +395,23 @@ class CavemanRunner():
     def caveman_split(self, index=None):
         """
         Runs CAVEMAN_SPLIT from the parameters used at initialisation,
-        or optionally from a specified index
+        or optionally from a specified index (starting from 1)
+
+        If `index` is provided, the caveman split workflow is run with
+        the initialisation settings, for only the value of valid_fai_idx
+        at position `index - 1`. The number of processes for the pool
+        is set to 1.
+
+        Otherwise, a pool of `self.threads` size is instantiated and
+        caveman split is run asynchronously for each value of valid_fai_idx
+        as calculated from the initialisation
+
+        Parameters:
+        -----------
+        `index` : `int` -
+            Index of `self.valid_vai_idx`, starting from 1, to run split
+            method on.
         """
-
-        # index (in +1 register) passed to worker
-        # command passed to worker
-        # index list restricted to one index if provided by user
-
         index_list = None
         if index:
             index_list = [self.valid_fai_idx[index-1]]
@@ -412,8 +422,10 @@ class CavemanRunner():
         else:
             index_list = self.valid_fai_idx
 
-        # We have checked in initialisation if caveman is in the path
-        # so we do not need to do it again here.
+        # In case function is being called manually, check caveman
+        # is still in the path.
+        if not self.check_caveman_in_path():
+            raise FileNotFoundError("`caveman` could not be found in $PATH")
 
         errors_raised = False
         with Pool(processes=self.threads) as pool:
