@@ -18,6 +18,7 @@ class CavemanRunner():
     Class to initialise, distribute resources for, and run caveman
     on HPC, based on the original wrapper keyword arguments.
     """
+    #TODO: Log directory is not used yet, this will be implemented later
 
     HELP_MESSAGE = f"Wrapper for CaVEMan, usage: caveman.py [kwargs]\n{CavemanFlags.short_flags}"
 
