@@ -406,11 +406,19 @@ class CavemanRunner():
         caveman split is run asynchronously for each value of valid_fai_idx
         as calculated from the initialisation
 
+        A bool is returned, trivially equal to True if the run is
+        successful to maintain consistency with Perl wrapper.
+
         Parameters:
         -----------
         `index` : `int` -
             Index of `self.valid_vai_idx`, starting from 1, to run split
             method on.
+
+        Returns:
+        --------
+        `bool` - 
+            True if the run is successful, errors are raised in other cases.
         """
         index_list = None
         num_procs = self.threads
