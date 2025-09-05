@@ -389,9 +389,45 @@ class CavemanRunner():
 
     def caveman_setup(self):
         """
-        Runs CAVEMAN_SETUP from the parameters used at initialisation
+        Runs CAVEMAN_SETUP from the parameters used at initialisation.
+
+        Returns:
+        --------
+        `bool` - True if the run is successful, False otherwise, based on
+        exit code of job, and output of `touch_success`.
         """
-        print("I am setting up caveman yay!")
+        if success_exists(self.progress_dir, 0):
+            return True
+        
+        # In case function is being called manually, check caveman
+        # is still in the path.
+        if not self.check_caveman_in_path():
+            raise FileNotFoundError("`caveman` could not be found in $PATH")
+
+        command = f"caveman setup "
+                  f"-t {self.tumour_bam} "
+                  f"-n {self.normal_bam} "
+                  f"-r {self.reference} "
+                  f"-g {self.ignore_file} "
+                  f"-l {self.split_list} "
+                  f"-f {self.results_dir} "
+                  f"-c {self.cave_cfg} "
+                  f"-a {self.alg_bean} "
+
+        if getattr(self, "normal_cn", None):
+            command += f"-j {self.normal_cn}"
+
+        if getattr(self, "tumour_cn", None):
+            command += f"-e {self.tumour_cn}"
+
+        # Only one process is required for setup, set index to 0.
+        index = 0
+        final_result = worker(command, index)
+
+        if not final_result["success"]:
+            return False
+
+        return touch_success(self.progress_dir, final_result["index"])
 
     def caveman_split(self, index=None):
         """
@@ -407,8 +443,8 @@ class CavemanRunner():
         caveman split is run asynchronously for each value of valid_fai_idx
         as calculated from the initialisation
 
-        A bool is returned, trivially equal to True if the run is
-        successful to maintain consistency with Perl wrapper.
+        A bool is returned, trivially equal to True/False if the run is/is
+        not successful to maintain consistency with Perl wrapper.
 
         Parameters:
         -----------
@@ -419,7 +455,7 @@ class CavemanRunner():
         Returns:
         --------
         `bool` - 
-            True if the run is successful, errors are raised in other cases.
+            True if the run is successful, False if errors arise in running
         """
         index_list = None
         num_procs = self.threads
@@ -444,8 +480,8 @@ class CavemanRunner():
             for value in index_list:
 
                 command = f"caveman split -i {value} "
-                           "-f {self.cave_cfg} "
-                           "-e {self.read_count}"
+                          f"-f {self.cave_cfg} "
+                          f"-e {self.read_count}"
 
                 result = pool.apply_async(worker, args=(command, index,))
                 async_results.append(result)
@@ -456,10 +492,16 @@ class CavemanRunner():
                     print(f"Split stage failed for {final_result['index']}", file=sys.stderr)
                     print(f"Error: {final_result['error']}", file=sys.stderr)
                     errors_raised = True
+                elif not touch_success(self.progress_dir, final_result["index"]):
+                    # touch_success os called, so if not successful count as an error
+                    errors_raised = True
                 else:
-                    touch_success(self.progress_dir, final_result["index"])
+                    # Explicitly show we continue if touch_success is True
+                    continue
 
-        return True
+        successful_run = not errors_raised
+
+        return successful_run
 
    # def caveman_mstep(self):
    #     """
