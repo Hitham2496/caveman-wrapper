@@ -38,8 +38,9 @@ class CavemanRunner():
     cave_carr = None
     split_list = None
 
-    # Container for valid fai indices
+    # Container for valid fai indices, vcf split counts
     valid_fai_idx = None
+    vcf_split_counts = None
 
     # Maximum indices for processes
     index_max = {
@@ -673,25 +674,6 @@ class CavemanRunner():
    #     Zip files before the cleanup stage if cleanup option is specified
    #     """
 
-    def limited_xstep_indices(self, index):
-        """
-        Check limited indices for the split list count.
-
-        Parameters:
-        -----------
-        `index` : `int` - 
-            Starting index to be checked from.
-
-        Returns:
-        --------
-        `indices` : `list` - 
-            List of limited indices by xstep.
-        """
-        split_count = file_line_count(self.split_list)
-        indices = self.limited_indices(index, split_count)
-        return indices
-
-
     def limited_indices(self, index, count):
         """
         Returns a list of indices starting from `index`,
@@ -726,10 +708,39 @@ class CavemanRunner():
 
         return indices
 
-   # def limited_flag_indices(self):
-   #     """
-   #     Check limited indices for the VCF split count
-   #     """
+    def limited_xstep_indices(self, index):
+        """
+        Check limited indices for the split list count.
+
+        Parameters:
+        -----------
+        `index` : `int` - 
+            Starting index to be checked from.
+
+        Returns:
+        --------
+        `indices` : `list` - 
+            List of limited indices by xstep.
+        """
+        split_count = file_line_count(self.split_list)
+        indices = self.limited_indices(index, split_count)
+        return indices
+
+    def limited_flag_indices(self, index):
+        """
+        Check limited indices for the VCF split count
+
+        Parameters:
+        -----------
+        `index` : `int` - 
+            Starting index to be checked from.
+
+        Returns:
+        --------
+        `indices` : `list` - 
+            List of limited indices by flag.
+        """
+        indices = self.limited_indices(index, self.vcf_split_count)
 
     def load_exclude(self):
         """
