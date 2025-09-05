@@ -504,10 +504,83 @@ class CavemanRunner():
 
         return successful_run
 
-   # def caveman_mstep(self):
-   #     """
-   #     Runs CAVEMAN_MSTEP from the parameters used at initialisation
-   #     """
+    def caveman_mstep(self, index=None):
+        """
+        Runs CAVEMAN_MSTEP from the parameters used at initialisation,
+        or optionally from a specified index (starting from 1).
+
+        If `index` is provided, the caveman split workflow is run with
+        the initialisation settings, for only the value of valid_fai_idx
+        at position `index - 1`. The number of processes for the pool
+        is set to 1.
+
+        Otherwise, a pool of `self.threads` size is instantiated and
+        caveman split is run asynchronously for each value of valid_fai_idx
+        as calculated from the initialisation
+
+        A bool is returned, trivially equal to True/False if the run is/is
+        not successful to maintain consistency with Perl wrapper.
+
+        Parameters:
+        -----------
+        `index` : `int` -
+            Index of `self.valid_vai_idx`, starting from 1, to run split
+            method on.
+
+        Returns:
+        --------
+        `bool` - 
+            True if the run is successful, False if errors arise in running
+        """
+        return False
+        #index_list = None
+        #num_procs = self.threads
+        #if index:
+        #    index_list = [self.valid_fai_idx[index-1]]
+        #    num_procs = 1
+        #    if index != self.index:
+        #        return True
+        #    if success_exists(self.progress_dir, index):
+        #        return True
+        #else:
+        #    index_list = self.valid_fai_idx
+
+
+
+        # In case function is being called manually, check caveman
+        # is still in the path.
+        if not self.check_caveman_in_path():
+            raise FileNotFoundError("`caveman` could not be found in $PATH")
+
+        errors_raised = False
+        with Pool(processes=num_procs) as pool:
+            async_results = []
+            for value in index_list:
+
+                command = f"caveman mstep -i {value} "
+                          f"-f {self.cave_cfg} "
+                          f"-e {self.read_count}"
+
+                result = pool.apply_async(worker, args=(self.log_dir, command, index,))
+                async_results.append(result)
+
+            for item in async_results:
+                final_result = item.get()
+                if not final_result["success"]:
+                    print(f"Split stage failed for {final_result['index']}", file=sys.stderr)
+                    print(f"Error: {final_result['error']}", file=sys.stderr)
+                    errors_raised = True
+                elif not touch_success(self.progress_dir, final_result["index"]):
+                    # touch_success os called, so if not successful count as an error
+                    errors_raised = True
+                else:
+                    # Explicitly show we continue if touch_success is True
+                    continue
+
+        successful_run = not errors_raised
+
+        return successful_run
+
 
     def caveman_merge(self):
         """
@@ -600,6 +673,11 @@ class CavemanRunner():
    #     Zip files before the cleanup stage if cleanup option is specified
    #     """
 
+   # def limited_xstep_indices(self):
+   #     """
+   #     Check limited indices for the split list count
+   #     """
+
    # def limited_indices(self):
    #     """
    #     Checks whether the index is not greater than the limit or lower than 1
@@ -608,11 +686,6 @@ class CavemanRunner():
    # def limited_flag_indices(self):
    #     """
    #     Check limited indices for the VCF split count
-   #     """
-     
-   # def limited_xstep_indices(self):
-   #     """
-   #     Check limited indices for the split list count
    #     """
 
     def load_exclude(self):
