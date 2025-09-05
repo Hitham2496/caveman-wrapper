@@ -673,10 +673,24 @@ class CavemanRunner():
    #     Zip files before the cleanup stage if cleanup option is specified
    #     """
 
-   # def limited_xstep_indices(self):
-   #     """
-   #     Check limited indices for the split list count
-   #     """
+    def limited_xstep_indices(self, index):
+        """
+        Check limited indices for the split list count.
+
+        Parameters:
+        -----------
+        `index` : `int` - 
+            Starting index to be checked from.
+
+        Returns:
+        --------
+        `indices` : `list` - 
+            List of limited indices by xstep.
+        """
+        split_count = file_line_count(self.split_list)
+        indices = self.limited_indices(index, split_count)
+        return indices
+
 
     def limited_indices(self, index, count):
         """
