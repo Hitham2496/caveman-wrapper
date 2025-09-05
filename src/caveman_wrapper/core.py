@@ -316,6 +316,7 @@ class CavemanRunner():
          Gets species assemblies from BAM files, sets `species`, `species_assembly`
          from reference
          """
+         SP_ASS_MESSAGE = f"{} defined at commandline {} does not match that in the BAM file {}. Defaulting to BAM file value."
          bam = pysam.AlignmentFile(self.tumour_bam, "rb")
          header = bam.header
          sq_entries = header.get('SQ', [])
