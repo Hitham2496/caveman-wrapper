@@ -104,7 +104,12 @@ class CavemanRunner():
         """
         Prints the version of caveman if requested
         """
-        print(0.)
+        # In case function is being called manually, check caveman
+        # is still in the path.
+        if not self.check_caveman_in_path():
+            raise FileNotFoundError("`caveman` could not be found in $PATH")
+        command = f"caveman --version"
+        subprocess.run(command.split(" "), check=True)
 
     def open_caveman_wrapper_manual(self):
         """
@@ -377,17 +382,29 @@ class CavemanRunner():
         if no_process or getattr(self, "process", None) == "split_concat":
             self.concat()
         
+        split_count = None
         # Step 7. file_line_count: if !process OR process in [mstep, estep]
+        if no_process or getattr(self, "process", None) in ["mstep", "estep"]:
+            split_count = file_line_count(self.split_list)
+
+        if getattr(self, "limit", None):
+            split_count = self.limit
 
         # Step 8. caveman_mstep: if !process OR process == mstep
-        
-        # Step 9. caveman_estep: if !process OR process == estep
-        
-        # Step 10. caveman_add_vcf_ids: if !process OR process == add_ids
+        if no_process or getattr(self, "process", None) == "mstep":
+            self.caveman_mstep(split_count)
 
-        # Step 11. caveman_flag: if !process OR process == flag OR !noflag
+        # Step 9. caveman_merge: if !process OR process == merge
+        if no_process or getattr(self, "process", None) == "merge":
+            self.caveman_merge()
 
-        # Step 12. cleanup: if !noclean
+        # Step 10. caveman_estep: if !process OR process == estep
+        
+        # Step 11. caveman_add_vcf_ids: if !process OR process == add_ids
+
+        # Step 12. caveman_flag: if !process OR process == flag OR !noflag
+
+        # Step 13. cleanup: if !noclean
 
     def caveman_setup(self):
         """
