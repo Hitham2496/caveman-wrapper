@@ -402,11 +402,13 @@ class CavemanRunner():
         if no_process or getattr(self, "process", None) == "estep":
             self.caveman_estep(split_count)
         
-        # Step 11. caveman_add_vcf_ids: if !process OR process == add_ids
+        # Step 11. caveman_merge_results: if !process OR process == merge_results
+        
+        # Step 12. caveman_add_vcf_ids: if !process OR process == add_ids
 
-        # Step 12. caveman_flag: if !process OR process == flag OR !noflag
+        # Step 13. caveman_flag: if !process OR process == flag OR !noflag
 
-        # Step 13. cleanup: if !noclean
+        # Step 14. cleanup: if !noclean
 
     def caveman_setup(self):
         """
@@ -745,10 +747,24 @@ class CavemanRunner():
 
         return successful_run
 
-   # def caveman_merge_results(self):
-   #     """
-   #     Runs MERGE_CAVEMAN_RESULTS from the parameters used at initialisation
-   #     """
+    def caveman_merge_results(self):
+        """
+        Runs MERGE_CAVEMAN_RESULTS from the parameters used at initialisation
+        """
+        tmp = self.tmp_dir
+        # TODO: Implement PCAP::sample_name analogue to redefine Caveman::Implement::prepare
+        # if possible, currently just writing to tumour_filename_vs_normal_filename.
+        out_file = f"{self.tumour_bam}_vs_{self.normal_bam}"
+        split_list = self.split_list
+
+        # TODO: This needs to be pythonised vcf concat subs & snps
+        # $opts{'subvcf'} = File::Spec->catfile($opts{'tmp'},"results/%/%.muts.vcf.gz");
+        # $opts{'snpvcf'} = File::Spec->catfile($opts{'tmp'},"results/%/%.snps.vcf.gz");
+
+        command = f"mergeCavemanResults -s {split_list}  -o {out_file}.muts.vcf -f self.subvcf" 
+        if success_exists(self.progress_dir, 0):
+            return True
+
 
    # def caveman_add_vcf_ids(self):
    #     """
