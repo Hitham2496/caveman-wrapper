@@ -399,6 +399,8 @@ class CavemanRunner():
             self.caveman_merge()
 
         # Step 10. caveman_estep: if !process OR process == estep
+        if no_process or getattr(self, "process", None) == "estep":
+            self.caveman_estep(split_count)
         
         # Step 11. caveman_add_vcf_ids: if !process OR process == add_ids
 
