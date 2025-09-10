@@ -269,7 +269,9 @@ class CavemanRunner():
         setattr(self, "cave_carr", f"{self.tmp_dir}/{CavemanConstants.CAVEMAN_COV_ARR}")
         setattr(self, "split_list", f"{self.tmp_dir}/splitList")
 
-        # TODO: subvcf, snpvcf, noanalysisbed dynamic output file generation will be implemented in member methods
+        setattr(self, "subvcf", f"{self.results_dir}/%/%.muts.vcf.gz")
+        setattr(self, "snpvcf", f"{self.results_dir}/%/%.snps.vcf.gz")
+        setattr(self, "noanalysisbed", f"{self.results_dir}/%/%.no_analysis.bed")
 
         #### Step 12. check process - if provided - is valid, set max index if it is provided otherwise default
         if getattr(self, "process", None):
@@ -403,6 +405,9 @@ class CavemanRunner():
             self.caveman_estep(split_count)
         
         # Step 11. caveman_merge_results: if !process OR process == merge_results
+        out_file = f"{self.tumour_bam}_vs_{self.normal_bam}"
+        if no_process or getattr(self, "process", None) == "merge_results":
+            self.caveman_merge_results(out_file)
         
         # Step 12. caveman_add_vcf_ids: if !process OR process == add_ids
 
@@ -747,24 +752,69 @@ class CavemanRunner():
 
         return successful_run
 
-    def caveman_merge_results(self):
+    def caveman_merge_results(self, out_file=f"{self.tumour_bam}_vs_{self.normal_bam}"):
         """
-        Runs MERGE_CAVEMAN_RESULTS from the parameters used at initialisation
+        Runs MERGE_CAVEMAN_RESULTS from the parameters used at initialisation.
+
+        This relies on the Perl script since threading is not important for this
+        application - one job is required for each call.
+
+        Parameters:
+        -----------
+        `out_file` : `str` - 
+            Base name of the output files for merged results
+
+        Returns:
+        --------
+        `bool` - 
+            True if the run is successful, False if errors arise in running
         """
         tmp = self.tmp_dir
         # TODO: Implement PCAP::sample_name analogue to redefine Caveman::Implement::prepare
         # if possible, currently just writing to tumour_filename_vs_normal_filename.
-        out_file = f"{self.tumour_bam}_vs_{self.normal_bam}"
         split_list = self.split_list
 
-        # TODO: This needs to be pythonised vcf concat subs & snps
-        # $opts{'subvcf'} = File::Spec->catfile($opts{'tmp'},"results/%/%.muts.vcf.gz");
-        # $opts{'snpvcf'} = File::Spec->catfile($opts{'tmp'},"results/%/%.snps.vcf.gz");
-
-        command = f"mergeCavemanResults -s {split_list}  -o {out_file}.muts.vcf -f self.subvcf" 
-        if success_exists(self.progress_dir, 0):
+        # First do substitutions
+        sub_command = f"mergeCavemanResults -s {split_list} -o {out_file}.muts.vcf -f {self.subvcf}"
+        if success_exists(f"{self.progress_dir}/merge_muts", 0):
             return True
 
+        # Only one process is required for setup, set index to 0.
+        sub_index = 0
+        sub_final_result = worker(sub_command, sub_index)
+        sub_success = touch_success(f"{self.progress_dir}/merge_muts", sub_final_result["index"])
+        if not sub_success:
+            print(f"Merging results failed for mutations stage failed", file=sys.stderr)
+            return False
+
+        # Next do SNPs
+        snp_command = f"mergeCavemanResults -s {split_list} -o {out_file}.snps.vcf -f {self.snpvcf}"
+        if success_exists(f"{self.progress_dir}/merge_snps", 0):
+            return True
+
+        # Only one process is required for setup, set index to 0.
+        snp_index = 0
+        snp_final_result = worker(snp_command, snp_index)
+        snp_success = touch_success(f"{self.progress_dir}/merge_snps", snp_final_result["index"])
+        if not snp_success:
+            print(f"Merging results failed for SNP stage failed", file=sys.stderr)
+            return False
+
+        # Next do no analysis region.
+        if success_exists(f"{self.progress_dir}/merge_no_analysis", 0):
+            return True
+        else:
+            no_analysis_command = f"mergeCavemanResults -s {split_list} -o {out_file}.no_analysis.bed -f {self.noanalysisbed}"
+
+            # Only one process is required for setup, set index to 0.
+            no_analysis_index = 0
+            no_analysis_final_result = worker(no_analysis_command, no_analysis_index)
+            # Extend no analysis region
+            self.extend_no_analysis(f"{out_file}.no_analysis.bed")
+            no_analysis_success = touch_success(f"{self.progress_dir}/merge_no_analysis", no_analysis_final_result["index"]) 
+            if not no_analysis_success:
+               print(f"Merging results failed for no analysis stage failed", file=sys.stderr)
+               return False
 
    # def caveman_add_vcf_ids(self):
    #     """
@@ -921,7 +971,23 @@ class CavemanRunner():
 
         return valid_indices
 
-   # def extend_no_analysis(self):
-   #     """
-   #     Extends no analysis in caveman_merge results
-   #     """
+    def extend_no_analysis(self, no_analysis_file):
+        """
+        Extends no analysis in caveman_merge_results
+
+        Parameters:
+        -----------
+        `no_analysis_file` : `str` - 
+            Filename to use to extend no analysis region.
+        """
+        exclude_patterns = self.load_exclude()
+
+        if not exclude_patterns:
+            return
+
+        with open(no_analysis_file, "w") as output_file:
+            with open(self.reference, "r") as input_reference):
+                for line in input_reference:
+                    seq, length = line.strip().split('\t')[0:2]
+                    print(f"{seq}\t0\t{length}", file=output_file)
+
