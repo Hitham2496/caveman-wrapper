@@ -123,8 +123,11 @@ def get_marker_filename(tmp, *indices):
     """
     frame = inspect.stack()[1]
     caller = f"{frame.frame.f_globals['__name__']}_{frame.function}".replace('.', '_')
-    suffix = '.'.join(str(i) for i in indices)
-    return Path(tmp) / f"{caller}.{suffix}"
+    if indices:
+        suffix = '.'.join(str(i) for i in indices)
+        return  Path(tmp) / f"{caller}.{suffix}"
+
+    return Path(tmp) / f"{caller}"
 
 def success_exists(tmp, *indices):
     """
