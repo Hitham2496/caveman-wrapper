@@ -816,6 +816,8 @@ class CavemanRunner():
                print(f"Merging results failed for no analysis stage failed", file=sys.stderr)
                return False
 
+        return True
+
    # def caveman_add_vcf_ids(self):
    #     """
    #     Runs CAVEMAN_VCF_IDS from the parameters used at initialisation
