@@ -73,7 +73,7 @@ class CavemanRunner():
 
         # Raise an error if the caveman executabel is not in the path
         # Do this before checking version
-        if not self.check_caveman_in_path():
+        if not self.check_exec_in_path():
             raise FileNotFoundError("`caveman` could not be found in $PATH")
 
         if "version" in kwargs:
@@ -106,7 +106,7 @@ class CavemanRunner():
         """
         # In case function is being called manually, check caveman
         # is still in the path.
-        if not self.check_caveman_in_path():
+        if not self.check_exec_in_path():
             raise FileNotFoundError("`caveman` could not be found in $PATH")
         command = f"caveman --version"
         subprocess.run(command.split(" "), check=True)
@@ -117,18 +117,23 @@ class CavemanRunner():
         """
         print("This will become the manual")
 
-    def check_caveman_in_path(self):
+    def check_exec_in_path(self, executable="caveman"):
         """
-        Attempts to locate the C executable for caveman in $PATH
+        Attempts to locate an executable for caveman in $PATH,
+        by default looks for `caveman`.
+
+        Parameters:
+        -----------
+        `executable` : `str` - 
+            Name of executable to look for
 
         Returns:
         --------
         `bool` - 
             True if found, False otherwise
         """
-        # TODO: Replace the 'True' with the commented out bit when done testing
-        self.caveman_executable = shutil.which("caveman")
-        return True #bool(self.caveman_executable)
+        executable_found = shutil.which(executable)
+        return bool(executable_found)
 
     def setup_caveman_environment(self):
         """
@@ -410,6 +415,13 @@ class CavemanRunner():
             self.caveman_merge_results(out_file)
         
         # Step 12. caveman_add_vcf_ids: if !process OR process == add_ids
+        raw_muts_file = f"{out_file}.{CavemanConstants.RAW_MUTS}"
+        ids_muts_file = f"{out_file}.{CavemanConstants.IDS_MUTS}"
+        raw_snps_file = f"{out_file}.{CavemanConstants.RAW_SNPS}"
+        ids_snps_file = f"{out_file}.{CavemanConstants.IDS_SNPS}"
+        if no_process or getattr(self, "process", None) == "add_ids":
+            self.caveman_add_vcf_ids(raw_muts_file, ids_muts_file, "muts")
+            self.caveman_add_vcf_ids(raw_snps_file, ids_snps_file, "snps")
 
         # Step 13. caveman_flag: if !process OR process == flag OR !noflag
 
@@ -429,7 +441,7 @@ class CavemanRunner():
         
         # In case function is being called manually, check caveman
         # is still in the path.
-        if not self.check_caveman_in_path():
+        if not self.check_exec_in_path():
             raise FileNotFoundError("`caveman` could not be found in $PATH")
 
         command = f"caveman setup "
@@ -499,7 +511,7 @@ class CavemanRunner():
 
         # In case function is being called manually, check caveman
         # is still in the path.
-        if not self.check_caveman_in_path():
+        if not self.check_exec_in_path():
             raise FileNotFoundError("`caveman` could not be found in $PATH")
 
         errors_raised = False
@@ -578,7 +590,7 @@ class CavemanRunner():
 
         # In case function is being called manually, check caveman
         # is still in the path.
-        if not self.check_caveman_in_path():
+        if not self.check_exec_in_path():
             raise FileNotFoundError("`caveman` could not be found in $PATH")
 
         errors_raised = False
@@ -620,7 +632,7 @@ class CavemanRunner():
         """ 
         # In case function is being called manually, check caveman
         # is still in the path.
-        if not self.check_caveman_in_path():
+        if not self.check_exec_in_path():
             raise FileNotFoundError("`caveman` could not be found in $PATH")
 
         if success_exists(self.progress_dir, 0):
@@ -682,7 +694,7 @@ class CavemanRunner():
 
         # In case function is being called manually, check caveman
         # is still in the path.
-        if not self.check_caveman_in_path():
+        if not self.check_exec_in_path():
             raise FileNotFoundError("`caveman` could not be found in $PATH")
 
         errors_raised = False
@@ -818,10 +830,53 @@ class CavemanRunner():
 
         return True
 
-   # def caveman_add_vcf_ids(self):
-   #     """
-   #     Runs CAVEMAN_VCF_IDS from the parameters used at initialisation
-   #     """
+    def caveman_add_vcf_ids(self, raw_file, ids_file, snps_or_muts):
+        """
+        Runs CAVEMAN_VCF_IDS from the parameters used at initialisation
+
+        Parameters:
+        -----------
+        `raw_file` : `str` - 
+            Raw VCF file without IDS
+
+        `ids_file` : str - 
+            IDs of samples for raw file
+
+        `snps_or_muts` : str - 
+            Whether SNPs or mutation signatures are being considered
+
+        Returns:
+        --------
+        `bool` - 
+            True if the run is successful, False if errors arise in running
+        """
+        if success_exists(f"{self.progress_dir}/{snps_or_muts}"):
+            return True
+
+        # Raise an error if the perl executable is not in the path
+        # Do this before checking version
+        perl_path = "perl"
+        if not self.check_exec_in_path(perl_path):
+            raise FileNotFoundError(f"`{perl_path}` could not be found in $PATH")
+
+        # Raise an error if the VCF IDS executable is not in the path
+        # Do this before checking version
+        executable = "cgpAppendIdsToVcf.pl"
+        if not self.check_exec_in_path(executable):
+            raise FileNotFoundError(f"`{executable}` could not be found in $PATH")
+
+        command = f"perl {executable} "
+                  f"-i {raw_file} "
+                  f"-o {ids_file}"
+        
+        final_result = worker(command, 0)
+        if not touch_success(f"{self.progress_dir}/{snps_or_muts}"):
+            print(f"Adding VCF IDs failed", file=sys.stderr)
+            return False
+
+        return True
+
+
 
    # def caveman_flag(self):
    #     """
