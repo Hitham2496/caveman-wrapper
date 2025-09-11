@@ -39,6 +39,8 @@ class CavemanRunner():
     split_list = None
 
     # Container for valid fai indices, vcf split counts
+    for_split = None
+    split_count = None
     valid_fai_idx = None
     vcf_split_counts = None
 
@@ -411,6 +413,7 @@ class CavemanRunner():
         
         # Step 11. caveman_merge_results: if !process OR process == merge_results
         out_file = f"{self.tumour_bam}_vs_{self.normal_bam}"
+
         if no_process or getattr(self, "process", None) == "merge_results":
             self.caveman_merge_results(out_file)
         
@@ -419,11 +422,26 @@ class CavemanRunner():
         ids_muts_file = f"{out_file}.{CavemanConstants.IDS_MUTS}"
         raw_snps_file = f"{out_file}.{CavemanConstants.RAW_SNPS}"
         ids_snps_file = f"{out_file}.{CavemanConstants.IDS_SNPS}"
+
         if no_process or getattr(self, "process", None) == "add_ids":
+            # First do mutations then SNPs
             self.caveman_add_vcf_ids(raw_muts_file, ids_muts_file, "muts")
             self.caveman_add_vcf_ids(raw_snps_file, ids_snps_file, "snps")
 
         # Step 13. caveman_flag: if !process OR process == flag OR !noflag
+        flag_defined_or_main_run = (no_process or getattr(self, "process", None) == "flag")
+        no_flag_undefined = getattr(self, "noflag", None)
+
+        if flag_defined_or_main_run or no_flag_undefined:
+            # Use same additions to options from perl wrapper for simplicity
+            self.for_split = ids_muts_file
+            self.split_out = f"{ids_muts_file}.split"
+            # No need for split_lines param as it is in CavemanConstants
+            # Split VCF first
+            self.caveman_split_vcf()
+
+            self.vcf_split_count = self.count_files("f{self.split_out}.*")
+
 
         # Step 14. cleanup: if !noclean
 
@@ -871,27 +889,75 @@ class CavemanRunner():
 
         final_result = worker(command, 0)
         if not touch_success(f"{self.progress_dir}/{snps_or_muts}"):
-            print(f"Adding VCF IDs failed", file=sys.stderr)
+            print(f"caveman_add_vcf_ids (calling {executable}) failed", file=sys.stderr)
             return False
 
         return True
-
-
 
    # def caveman_flag(self):
    #     """
    #     Runs CAVEMAN_FLAG from the parameters used at initialisation
    #     """
  
-   # def caveman_split_vcf(self):
-   #     """
-   #     Runs CAVEMAN_VCF_SPLIT from the parameters used at initialisation
-   #     """
+    def caveman_split_vcf(self):
+        """
+        Runs CAVEMAN_VCF_SPLIT from the parameters used at initialisation
 
-   # def count_files(self):
-   #     """
-   #     Runs FILE_COUNT from the parameters used at initialisation
-   #     """
+        Returns:
+        -------
+        `bool` - 
+            True if run was successful, False otherwise.
+        """
+        if success_exists(f"{self.progress_dir}", 0):
+            return True
+
+        # Raise an error if the perl executable is not in the path
+        # Do this before checking version
+        perl_path = "perl"
+        if not self.check_exec_in_path(perl_path):
+            raise FileNotFoundError(f"`{perl_path}` could not be found in $PATH")
+
+        # Raise an error if the VCF split executable is not in the path
+        # Do this before checking version
+        executable = "cgpVCFSplit.pl"
+        if not self.check_exec_in_path(executable):
+            raise FileNotFoundError(f"`{executable}` could not be found in $PATH")
+
+        command = f"perl {executable} "
+                  f"-i {self.for_split} "
+                  f"-o {self.split_out} "
+                  f"-s "
+                  f"-l {CavemanConstants.SPLIT_LINE_COUNT}"
+
+        final_result = worker(command, 0)
+        if not touch_success(f"{self.progress_dir}", 0):
+            print(f"caveman_split_vcf (calling {executable}) failed", file=sys.stderr)
+            return False
+
+        return True
+
+    def count_files(self, match_pattern):
+        """
+        Runs FILE_COUNT from the parameters used at initialisation
+
+        Parameters:
+        -----------
+        `match_pattern` : `str` - 
+            Filename pattern to match for counting
+
+        Returns:
+        --------
+        `count` : `int` - 
+            Number of files matching the pattern `match_pattern`
+        """
+        try:
+            # Use glob for safety and simplicity
+            import glob
+            files = glob.glob(match_pattern)
+            return len(files)
+        except Exception as e:
+            # Mimic the die clause in the perl wrapper
+            raise RuntimeError(f"ERROR: ({e}) Encountered counting split files for flagging. Searching {match_pattern}")
 
     def concat(self):
         """
