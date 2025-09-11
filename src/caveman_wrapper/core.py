@@ -868,7 +868,7 @@ class CavemanRunner():
         command = f"perl {executable} "
                   f"-i {raw_file} "
                   f"-o {ids_file}"
-        
+
         final_result = worker(command, 0)
         if not touch_success(f"{self.progress_dir}/{snps_or_muts}"):
             print(f"Adding VCF IDs failed", file=sys.stderr)
