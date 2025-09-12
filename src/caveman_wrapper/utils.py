@@ -246,7 +246,7 @@ class CavemanFlags():
     logs: str = None
     index: int = None
     limit: int = None
-    flag_bed_files: str = None
+    flag_bed: str = None
     annot_bed: str = None
     germindel: str = None
     unmatched_vcf: str = None
@@ -290,7 +290,7 @@ class CavemanFlags():
        "logs" : "g",
        "index" : "i",
        "limit" : "l",
-       "flag_bed_files" : "b",
+       "flag_bed" : "b",
        "annot_bed" : "ab",
        "germindel" : "in",
        "unmatched_vcf" : "u",
