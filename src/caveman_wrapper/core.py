@@ -37,6 +37,7 @@ class CavemanRunner():
     cave_parr = None
     cave_carr = None
     split_list = None
+    alg_bean = None
 
     # Container for valid fai indices, vcf split counts
     for_split = None
@@ -200,7 +201,7 @@ class CavemanRunner():
         #### Step 6. Check (flagconfig, flagtovcfconfig, germline-indel-bed) if provided
         for config_arg in ["flagConfig", "flagToVcfConfig", "germindel"]:
             config_val = getattr(self, config_arg, None)
-            if not os.path.isfile(config_val):
+            if config_val and not os.path.isfile(config_val):
                 raise ValueError(f"File '{config_val}' for option '{config_arg}' could not be found")
 
         #### Step 7. Get assembly and check reference provided is the fasta fai file
@@ -640,7 +641,7 @@ class CavemanRunner():
                 command = f"caveman mstep -i {value} "
                 f"-f {self.cave_cfg}"
 
-                result = pool.apply_async(worker, args=(self.log_dir, command, idx,))
+                result = pool.apply_async(worker, args=(self.log_dir, command, idx+1,))
                 async_results.append(result)
 
             for item in async_results:
@@ -681,7 +682,7 @@ class CavemanRunner():
 
         # Only one process is required for setup, set index to 0.
         index = 0
-        final_result = worker(command, index)
+        final_result = worker(self.log_dir,command, index)
 
         if not final_result["success"]:
             print(f"Merge stage failed for {final_result['index']}", file=sys.stderr)
@@ -780,7 +781,7 @@ class CavemanRunner():
                 if getattr(self, "debug_cave", None):
                     command += f"-s "
 
-                result = pool.apply_async(worker, args=(self.log_dir, command, idx,))
+                result = pool.apply_async(worker, args=(self.log_dir, command, idx+1,))
                 async_results.append(result)
 
             for item in async_results:
@@ -834,7 +835,7 @@ class CavemanRunner():
 
         # Only one process is required for setup, set index to 0.
         sub_index = 0
-        sub_final_result = worker(sub_command, sub_index)
+        sub_final_result = worker(self.log_dir, sub_command, sub_index)
         sub_success = touch_success(f"{self.progress_dir}/merge_muts", sub_final_result["index"])
         if not sub_success:
             print(f"Merging results failed for mutations stage failed", file=sys.stderr)
@@ -847,7 +848,7 @@ class CavemanRunner():
 
         # Only one process is required for setup, set index to 0.
         snp_index = 0
-        snp_final_result = worker(snp_command, snp_index)
+        snp_final_result = worker(self.log_dir, snp_command, snp_index)
         snp_success = touch_success(f"{self.progress_dir}/merge_snps", snp_final_result["index"])
         if not snp_success:
             print(f"Merging results failed for SNP stage failed", file=sys.stderr)
@@ -861,7 +862,7 @@ class CavemanRunner():
 
             # Only one process is required for setup, set index to 0.
             no_analysis_index = 0
-            no_analysis_final_result = worker(no_analysis_command, no_analysis_index)
+            no_analysis_final_result = worker(self.log_dir, no_analysis_command, no_analysis_index)
             # Extend no analysis region
             self.extend_no_analysis(f"{out_file}.no_analysis.bed")
             no_analysis_success = touch_success(f"{self.progress_dir}/merge_no_analysis", no_analysis_final_result["index"]) 
@@ -908,7 +909,7 @@ class CavemanRunner():
         f"-i {raw_file} "
         f"-o {ids_file}"
 
-        final_result = worker(command, 0)
+        final_result = worker(self.log_dir, command, 0)
         if not touch_success(f"{self.progress_dir}/{snps_or_muts}"):
             print(f"caveman_add_vcf_ids (calling {executable}) failed", file=sys.stderr)
             print(f"Error: {final_result['error']}", file=sys.stderr)
@@ -944,7 +945,6 @@ class CavemanRunner():
 
         # Raise an error if the flagging executable is not in the path
         executable = "cgpFlagCaVEMan.pl"
-        #const my $CAVEMAN_FLAG => q{ -i %s -o %s -s %s -m %s -n %s -b %s -g %s -umv %s -ref %s -t %s -sa %s};
 
         if not self.check_exec_in_path(executable):
             raise FileNotFoundError(f"`{executable}` could not be found in $PATH")
@@ -982,7 +982,7 @@ class CavemanRunner():
                 if getattr(self, "annot_bed", None):
                     command += f"-ab {self.annot_bed} "
 
-                result = pool.apply_async(worker, args=(self.log_dir, command, idx,))
+                result = pool.apply_async(worker, args=(self.log_dir, command, idx+1,))
                 async_results.append(result)
 
             for item in async_results:
@@ -1032,7 +1032,7 @@ class CavemanRunner():
         f"-s "
         f"-l {CavemanConstants.SPLIT_LINE_COUNT}"
 
-        final_result = worker(command, 0)
+        final_result = worker(self.log_dir, command, 0)
         if not touch_success(f"{self.progress_dir}", 0):
             print(f"caveman_split_vcf (calling {executable}) failed", file=sys.stderr)
             print(f"Error: {final_result['error']}", file=sys.stderr)
