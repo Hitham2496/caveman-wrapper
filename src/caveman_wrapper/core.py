@@ -74,7 +74,6 @@ class CavemanRunner():
             sys.exit()
 
         # Raise an error if the caveman executabel is not in the path
-        # Do this before checking version
         if not self.check_exec_in_path():
             raise FileNotFoundError("`caveman` could not be found in $PATH")
 
@@ -493,6 +492,8 @@ class CavemanRunner():
         final_result = worker(self.log_dir, command, index)
 
         if not final_result["success"]:
+            print(f"Setup stage failed for {final_result['index']}", file=sys.stderr)
+            print(f"Error: {final_result['error']}", file=sys.stderr)
             return False
 
         return touch_success(self.progress_dir, final_result["index"])
@@ -676,6 +677,8 @@ class CavemanRunner():
         final_result = worker(command, index)
 
         if not final_result["success"]:
+            print(f"Merge stage failed for {final_result['index']}", file=sys.stderr)
+            print(f"Error: {final_result['error']}", file=sys.stderr)
             return False
 
         return touch_success(self.progress_dir, final_result["index"])
@@ -856,8 +859,8 @@ class CavemanRunner():
             self.extend_no_analysis(f"{out_file}.no_analysis.bed")
             no_analysis_success = touch_success(f"{self.progress_dir}/merge_no_analysis", no_analysis_final_result["index"]) 
             if not no_analysis_success:
-               print(f"Merging results failed for no analysis stage failed", file=sys.stderr)
-               return False
+                print(f"Merging results failed for no analysis stage failed", file=sys.stderr)
+                return False
 
         return True
 
@@ -885,13 +888,11 @@ class CavemanRunner():
             return True
 
         # Raise an error if the perl executable is not in the path
-        # Do this before checking version
         perl_path = "perl"
         if not self.check_exec_in_path(perl_path):
             raise FileNotFoundError(f"`{perl_path}` could not be found in $PATH")
 
         # Raise an error if the VCF IDS executable is not in the path
-        # Do this before checking version
         executable = "cgpAppendIdsToVcf.pl"
         if not self.check_exec_in_path(executable):
             raise FileNotFoundError(f"`{executable}` could not be found in $PATH")
@@ -903,6 +904,7 @@ class CavemanRunner():
         final_result = worker(command, 0)
         if not touch_success(f"{self.progress_dir}/{snps_or_muts}"):
             print(f"caveman_add_vcf_ids (calling {executable}) failed", file=sys.stderr)
+            print(f"Error: {final_result['error']}", file=sys.stderr)
             return False
 
         return True
@@ -929,13 +931,11 @@ class CavemanRunner():
             num_procs = 1
 
         # Raise an error if the perl executable is not in the path
-        # Do this before checking version
         perl_path = "perl"
         if not self.check_exec_in_path(perl_path):
             raise FileNotFoundError(f"`{perl_path}` could not be found in $PATH")
 
         # Raise an error if the flagging executable is not in the path
-        # Do this before checking version
         executable = "cgpFlagCaVEMan.pl"
         #const my $CAVEMAN_FLAG => q{ -i %s -o %s -s %s -m %s -n %s -b %s -g %s -umv %s -ref %s -t %s -sa %s};
 
@@ -1010,13 +1010,11 @@ class CavemanRunner():
             return True
 
         # Raise an error if the perl executable is not in the path
-        # Do this before checking version
         perl_path = "perl"
         if not self.check_exec_in_path(perl_path):
             raise FileNotFoundError(f"`{perl_path}` could not be found in $PATH")
 
         # Raise an error if the VCF split executable is not in the path
-        # Do this before checking version
         executable = "cgpVCFSplit.pl"
         if not self.check_exec_in_path(executable):
             raise FileNotFoundError(f"`{executable}` could not be found in $PATH")
@@ -1030,6 +1028,7 @@ class CavemanRunner():
         final_result = worker(command, 0)
         if not touch_success(f"{self.progress_dir}", 0):
             print(f"caveman_split_vcf (calling {executable}) failed", file=sys.stderr)
+            print(f"Error: {final_result['error']}", file=sys.stderr)
             return False
 
         return True
@@ -1072,6 +1071,8 @@ class CavemanRunner():
         final_result = worker(self.log_dir, command, index)
 
         if not final_result["success"]:
+            print(f"Concat failed for command: `{command}`", file=sys.stderr)
+            print(f"Error: {final_result['error']}", file=sys.stderr)
             return False
 
         return touch_success(self.progress_dir, final_result["index"])
@@ -1079,12 +1080,16 @@ class CavemanRunner():
     def concat_flagged(self):
         """
         Runs CAVEMAN_VCF_FLAGGED_CONCAT from the parameters used at initialisation
+
+        Returns:
+        ---------
+        `bool` - 
+            True if the run was successful, False otherwise.
         """
         if success_exists(self.progress_dir, 0):
             return True
         
         # Concatenate all {self.split_list}.* files to {self.split_list}
-        #TODO: These need to be piped to each other
         concat_command = f"vcf-concat {self.flagged}.*"
         sort_command = f"vcf-sort"
 
@@ -1100,18 +1105,84 @@ class CavemanRunner():
             print(f"Error: {e}", file=sys.stderr)
             return False
 
-        return touch_success(self.progress_dir, final_result["index"], 0)
+        return touch_success(self.progress_dir, 0)
 
     def zip_flagged(self):
         """
         Zips flagged files from caveman_flag stage
-        """
-        return
 
-   # def pre_cleanup_zip(self):
-   #     """
-   #     Zip files before the cleanup stage if cleanup option is specified
-   #     """
+        Returns:
+        --------
+        `bool` - 
+            True if run is successful, False otherwise.
+        """
+        # IMPORTANT: THERE IS NO CHECK AGAINST `success_exists` IN THE PERL
+        # WRAPPER, TO MAINTAIN COMPATIBILITY I HAVE NOT IMPLEMENTED ONE HERE.
+        vcf_gz = f"{self.flagged}.gz"
+
+        # Raise an error if bgzip executable is not in the path
+        bgzip = "bgzip"
+        if not self.check_exec_in_path(perl_path):
+            raise FileNotFoundError(f"`bgzip` could not be found in $PATH")
+
+        # Raise an error if the tabix executable is not in the path
+        tabix = "tabix"
+        if not self.check_exec_in_path(tabix):
+            raise FileNotFoundError(f"`tabix` could not be found in $PATH")
+
+        bgzip_command = f"{bgzip} -c {self.flagged} > {vcf_gz}"
+        tabix_command = f"{tabix} -p vcf {vcf_gz}"
+        commands = [bgzip_command, tabix_command]
+
+        for command in commands:
+            index = 0
+            result = worker(self.log_dir, command, index)
+
+            if not result["success"]:
+                print(f"Zip flagging stage failed for command: `{command}`", file=sys.stderr)
+                print(f"Error: {result['error']}", file=sys.stderr)
+                return False
+
+        return touch_success(self.progress_dir, 0)
+
+    def pre_cleanup_zip(self):
+        """
+        Zip files before the cleanup stage if cleanup option is specified
+        """
+        if success_exists(self.progress_dir, 0):
+            return True
+
+        # Raise an error if bgzip executable is not in the path
+        bgzip = "bgzip"
+        if not self.check_exec_in_path(perl_path):
+            raise FileNotFoundError(f"`bgzip` could not be found in $PATH")
+
+        # Raise an error if the tabix executable is not in the path
+        tabix = "tabix"
+        if not self.check_exec_in_path(tabix):
+            raise FileNotFoundError(f"`tabix` could not be found in $PATH")
+
+        vcf_muts_gz = f"{self.ids_muts_file}.gz"
+        bgzip_muts_command = f"{bgzip} -c {self.ids_muts_file} > {vcf_muts_gz}"
+        tabix_muts_command = f"{tabix} -p vcf {vcf_muts_gz}"
+
+        vcf_snps_gz = f"{self.ids_snps_file}.gz"
+        bgzip_snps_command = f"{bgzip} -c {self.ids_snps_file} > {vcf_snps_gz}"
+        tabix_snps_command = f"{tabix} -p vcf {vcf_snps_gz}"
+
+        commands = [bgzip_muts_command, tabix_muts_command, bgzip_snps_command, tabix_snps_command]
+
+        for command in commands:
+            index = 0
+            result = worker(self.log_dir, command, index)
+
+            if not result["success"]:
+                print(f"Zip flagging stage failed for command: `{command}`", file=sys.stderr)
+                print(f"Error: {result['error']}", file=sys.stderr)
+                return False
+
+        return touch_success(self.progress_dir, 0)
+
 
     def limited_indices(self, index, count):
         """
