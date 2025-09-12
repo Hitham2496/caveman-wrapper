@@ -453,6 +453,13 @@ class CavemanRunner():
             self.zip_flagged()
 
         # Step 14. cleanup: if !noclean
+        if not getattr(self, "noclean", None):
+            # 'or' is distributive, so combining with previous bools has no
+            # effect and makes the implementaiton more readable.
+            add_ids_defined = getattr(self, "add_ids", None)
+            if flag_defined_or_main_run or (no_flag_defined and add_ids_defined):
+                self.pre_cleanup_zip()
+                self.cleanup()
 
     def caveman_setup(self):
         """
@@ -1183,6 +1190,11 @@ class CavemanRunner():
 
         return touch_success(self.progress_dir, 0)
 
+    def cleanup(self):
+        """
+        Runs cleanup method after all processes have concluded.
+        """
+        return
 
     def limited_indices(self, index, count):
         """
