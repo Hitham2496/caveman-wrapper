@@ -965,7 +965,7 @@ class CavemanRunner():
                 f"-n {self.normal_bam} "
                 f"-b {self.flag_bed} "
                 f"-g {self.germindel} "
-                f"-umv {self.unmatchedvcf} "
+                f"-umv {self.unmatched_vcf} "
                 f"-ref {self.reference} "
                 f"-t {self.seqType} "
                 f"-sa {self.species_assembly} "
