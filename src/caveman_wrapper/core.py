@@ -438,7 +438,7 @@ class CavemanRunner():
         flag_defined_or_main_run = (no_process or getattr(self, "process", None) == "flag")
         no_flag_undefined = getattr(self, "noflag", None)
 
-        if flag_defined_or_main_run or no_flag_undefined:
+        if flag_defined_or_main_run or not no_flag_undefined:
             # Use same additions to options from perl wrapper for simplicity
             self.for_split = ids_muts_file
             self.split_out = f"{ids_muts_file}.split"
@@ -1129,7 +1129,7 @@ class CavemanRunner():
 
         # Raise an error if bgzip executable is not in the path
         bgzip = "bgzip"
-        if not self.check_exec_in_path(perl_path):
+        if not self.check_exec_in_path(bgzip):
             raise FileNotFoundError(f"`bgzip` could not be found in $PATH")
 
         # Raise an error if the tabix executable is not in the path
