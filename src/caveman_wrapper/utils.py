@@ -336,9 +336,9 @@ class CavemanFlags():
                 continue
 
             if value == bool:
-                parser.add_argument(long_flag, action=argparse.BooleanOptionalAction)
+                parser.add_argument(short_flag, long_flag, action=argparse.BooleanOptionalAction, default=False)
                 continue
 
-            parser.add_argument(long_flag, short_flag, type=value)
+            parser.add_argument(short_flag, long_flag, type=value)
         return parser
 

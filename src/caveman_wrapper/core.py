@@ -64,13 +64,13 @@ class CavemanRunner():
         """
         # See if the user has asked for help before doing any more checking
         # Exit after printing help message
-        if "help" in kwargs:
+        if kwargs.get("help", False):
             self.print_help_message()
             sys.exit()
 
         # Requesting manual should take precedence over checks too
         # Exit after opening manual
-        if "man" in kwargs:
+        if kwargs.get("man", False):
             self.open_caveman_wrapper_manual()
             sys.exit()
 
@@ -78,7 +78,7 @@ class CavemanRunner():
         if not self.check_exec_in_path():
             raise FileNotFoundError("`caveman` could not be found in $PATH")
 
-        if "version" in kwargs:
+        if kwargs.get("version", False):
             self.print_caveman_version()
             sys.exit()
 
