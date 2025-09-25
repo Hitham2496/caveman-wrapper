@@ -1,2 +1,0 @@
-#!/usr/bin/env bash
-exec $SING_PREFIX_CGPCAVEMANWRAPPER $(basename $0) "$@"
