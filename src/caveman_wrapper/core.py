@@ -274,7 +274,7 @@ class CavemanRunner():
             setattr(self, "log_dir", f"{self.tmp_dir}/logs")
 
         setattr(self, "cave_cfg", f"{self.tmp_dir}/{CavemanConstants.CAVEMAN_CONFIG}")
-        setattr(self, "cave_alg", f"{self.tmp_dir}/{CavemanConstants.CAVEMAN_ALG_BEAN}")
+        setattr(self, "alg_bean", f"{self.tmp_dir}/{CavemanConstants.CAVEMAN_ALG_BEAN}")
         setattr(self, "cave_parr", f"{self.tmp_dir}/{CavemanConstants.CAVEMAN_PROB_ARR}")
         setattr(self, "cave_carr", f"{self.tmp_dir}/{CavemanConstants.CAVEMAN_COV_ARR}")
         setattr(self, "split_list", f"{self.tmp_dir}/splitList")
