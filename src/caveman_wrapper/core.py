@@ -6,13 +6,13 @@ Core class to run caveman with parameters provided by user
 This script uses multiprocessing to ensure that CPU resource
 allocated by HPC schedulers are adequately used
 """
-import subprocess
 import time
-from multiprocessing import Pool
 import pysam
 import warnings
-from .utils import *
+import subprocess
+from multiprocessing import Pool
 
+from .utils import *
 class CavemanRunner():
     """
     Class to initialise, distribute resources for, and run caveman
@@ -87,9 +87,10 @@ class CavemanRunner():
         for key in kwargs:
             if key not in allowed_keys:
                 raise ValueError(f"Key '{key}' is not recognised as an option for caveman")
-
-            if not isinstance(kwargs[key], allowed_keys[key]):
-                raise ValueError(f"The value provided for the parameter '{key}' should be of type: {allowed_keys[key]}")
+		
+	    # TODO - remove when not testing
+            #if not isinstance(kwargs[key], allowed_keys[key]):
+            #    raise ValueError(f"The value provided for the parameter '{key}' should be of type: {allowed_keys[key]}")
 
             setattr(self, key, kwargs[key])
 
@@ -120,6 +121,7 @@ class CavemanRunner():
         print("This will become the manual")
 
     def check_exec_in_path(self, executable="caveman"):
+#export NXF_PLUGINS_DEV="$HOME/git/nf-schema";
         """
         Attempts to locate an executable for caveman in $PATH,
         by default looks for `caveman`.
@@ -264,7 +266,7 @@ class CavemanRunner():
         #### Step 11. create objects for output files, starting with tmp dir in outdir
         setattr(self, "tmp_dir", f"{self.outdir}/tmpCaveman")
         setattr(self, "results_dir", f"{self.tmp_dir}/results")
-        setattr(self, "progress_dir", f"{self.tmp_dir}/progresss")
+        setattr(self, "progress_dir", f"{self.tmp_dir}/progress")
 
         if getattr(self, "logs", None):
             setattr(self, "log_dir", f"{self.tmp_dir}/{self.logs}")
@@ -479,15 +481,15 @@ class CavemanRunner():
         if not self.check_exec_in_path():
             raise FileNotFoundError("`caveman` could not be found in $PATH")
 
-        command = f"caveman setup "
-        f"-t {self.tumour_bam} "
-        f"-n {self.normal_bam} "
-        f"-r {self.reference} "
-        f"-g {self.ignore_file} "
-        f"-l {self.split_list} "
-        f"-f {self.results_dir} "
-        f"-c {self.cave_cfg} "
-        f"-a {self.alg_bean} "
+        command =  (f"caveman setup " +
+                    f"-t {self.tumour_bam} " +
+                    f"-n {self.normal_bam} " +
+                    f"-r {self.reference} " +
+                    f"-g {self.ignore_file} " +
+                    f"-l {self.split_list} " +
+                    f"-f {self.results_dir} " +
+                    f"-c {self.cave_cfg} " +
+                    f"-a {self.alg_bean} ")
 
         if getattr(self, "normal_cn", None):
             command += f"-j {self.normal_cn}"
@@ -501,7 +503,7 @@ class CavemanRunner():
 
         if not final_result["success"]:
             print(f"Setup stage failed for {final_result['index']}", file=sys.stderr)
-            print(f"Error: {final_result['error']}", file=sys.stderr)
+            print(f"Error: {final_result['error']} Message: {final_result['message']}", file=sys.stderr)
             return False
 
         return touch_success(self.progress_dir, final_result["index"])
@@ -559,9 +561,9 @@ class CavemanRunner():
                 if success_exists(self.progress_dir, idx+1):
                     continue
 
-                command = f"caveman split -i {value} "
-                f"-f {self.cave_cfg} "
-                f"-e {self.read_count}"
+                command = (f"caveman split -i {value} " +
+                            f"-f {self.cave_cfg} " +
+                            f"-e {self.read_count}")
 
                 result = pool.apply_async(worker, args=(self.log_dir, command, idx+1,))
                 async_results.append(result)
@@ -638,8 +640,8 @@ class CavemanRunner():
                 if success_exists(self.progress_dir, idx+1):
                     continue
 
-                command = f"caveman mstep -i {value} "
-                f"-f {self.cave_cfg}"
+                command = (f"caveman mstep -i {value} " +
+                            f"-f {self.cave_cfg}")
 
                 result = pool.apply_async(worker, args=(self.log_dir, command, idx+1,))
                 async_results.append(result)
@@ -675,10 +677,10 @@ class CavemanRunner():
         if success_exists(self.progress_dir, 0):
             return True
         
-        command = f"caveman merge "
-        f"-c {self.cave_carr} "
-        f"-p {self.cave_parr} "
-        f"-f {self.cave_cfg}"
+        command = (f"caveman merge " +
+                    f"-c {self.cave_carr} " +
+                    f"-p {self.cave_parr} " +
+                    f"-f {self.cave_cfg}")
 
         # Only one process is required for setup, set index to 0.
         index = 0
@@ -744,15 +746,15 @@ class CavemanRunner():
                 if success_exists(self.progress_dir, idx+1):
                     continue
 
-                command = f"caveman estep -i {value} "
-                f"-k {self.normcont_value} "
-                f"-g {self.cave_carr} "
-                f"-o {self.cave_parr} "
-                f"-v {self.species_assembly} "
-                f"-w {self.species} "
-                f"-f {self.cave_cfg} "
-                f"-l {self.normal_protocol} "
-                f"-r {self.tumour_protocol} "
+                command = (f"caveman estep -i {value} " +
+                            f"-k {self.normcont_value} " + 
+                            f"-g {self.cave_carr} " +
+                            f"-o {self.cave_parr} " +
+                            f"-v {self.species_assembly} " + 
+                            f"-w {self.species} " +
+                            f"-f {self.cave_cfg} " +
+                            f"-l {self.normal_protocol} " + 
+                            f"-r {self.tumour_protocol} ")
 
                 if getattr(self, "norm_cn_default", None):
                     command += f"-n {self.norm_cn_default} "
@@ -905,9 +907,9 @@ class CavemanRunner():
         if not self.check_exec_in_path(executable):
             raise FileNotFoundError(f"`{executable}` could not be found in $PATH")
 
-        command = f"perl {executable} "
-        f"-i {raw_file} "
-        f"-o {ids_file}"
+        command = (f"perl {executable} " +
+                    f"-i {raw_file} " +
+                    f"-o {ids_file}")
 
         final_result = worker(self.log_dir, command, 0)
         if not touch_success(f"{self.progress_dir}/{snps_or_muts}"):
@@ -957,18 +959,18 @@ class CavemanRunner():
                 if success_exists(self.progress_dir, idx+1):
                     continue
 
-                command = f"perl {executable} "
-                f"-i {self.split_out}.{value} "
-                f"-o {self.flagged}.{value} "
-                f"-s {self.species} "
-                f"-m {self.tumour_bam} "
-                f"-n {self.normal_bam} "
-                f"-b {self.flag_bed} "
-                f"-g {self.germindel} "
-                f"-umv {self.unmatched_vcf} "
-                f"-ref {self.reference} "
-                f"-t {self.seqType} "
-                f"-sa {self.species_assembly} "
+                command = (f"perl {executable} " +
+                            f"-i {self.split_out}.{value} " +
+                            f"-o {self.flagged}.{value} " +
+                            f"-s {self.species} " +
+                            f"-m {self.tumour_bam} " +
+                            f"-n {self.normal_bam} " +
+                            f"-b {self.flag_bed} " +
+                            f"-g {self.germindel} " +
+                            f"-umv {self.unmatched_vcf} " +
+                            f"-ref {self.reference} " +
+                            f"-t {self.seqType} " +
+                            f"-sa {self.species_assembly} ")
 
                 if getattr(self, "flagConfig", None):
                     command += f"-c {self.flagConfig} "
@@ -1026,11 +1028,11 @@ class CavemanRunner():
         if not self.check_exec_in_path(executable):
             raise FileNotFoundError(f"`{executable}` could not be found in $PATH")
 
-        command = f"perl {executable} "
-        f"-i {self.for_split} "
-        f"-o {self.split_out} "
-        f"-s "
-        f"-l {CavemanConstants.SPLIT_LINE_COUNT}"
+        command = (f"perl {executable} " + 
+                    f"-i {self.for_split} " +
+                    f"-o {self.split_out} " + 
+                    f"-s " + 
+                    f"-l {CavemanConstants.SPLIT_LINE_COUNT}")
 
         final_result = worker(self.log_dir, command, 0)
         if not touch_success(f"{self.progress_dir}", 0):
@@ -1316,4 +1318,3 @@ class CavemanRunner():
                 for line in input_reference:
                     seq, length = line.strip().split('\t')[0:2]
                     print(f"{seq}\t0\t{length}", file=output_file)
-

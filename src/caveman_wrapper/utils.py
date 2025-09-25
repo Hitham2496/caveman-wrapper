@@ -3,16 +3,16 @@ CaVEMan wrapper to replace Perl script
 
 utilities classes for caveman params and consts
 """
-import argparse
 import os
+import re
 import sys
-from dataclasses import dataclass
 import gzip
 import shutil
-import re
 import inspect
+import argparse
 import subprocess
 from pathlib import Path
+from dataclasses import dataclass
 
 
 def gunzip_file(filename_in, filename_out):
@@ -80,7 +80,7 @@ def valid_index_by_factor(opt_name, opt_val, base, proc_factor=1):
     if not (1 <= opt_val <= max_val):
         raise ValueError(f"Option '{opt_name}' needs to be between 1 and {max_val}")
 
-def check_outdir(directory_name):
+def check_outdir(directory_name: str):
     """
     Simplified void implementation of PCAP::Cli::out_dir_check,
     which does not ask to overwrite an existing directory.
@@ -97,6 +97,7 @@ def check_outdir(directory_name):
         if len(os.listdir(directory_name)) != 0:
             raise OSError("Directory {directory_name} exists and is non-empty")
 
+        # TODO - probably don't want to write test_file in final version
         try:
             filestream = open(f"{directory_name}/test_file.txt", 'w')
         except IOError:
@@ -150,7 +151,7 @@ def touch_success(tmp, *indices):
     marker.touch()
     return True
 
-def worker(tmp, command, index):
+def worker(tmp: str, command: str, index: int):
     """
     A worker method to run a specific command with a given
     index to report errors.
@@ -175,13 +176,14 @@ def worker(tmp, command, index):
         the associated exception.
     """
     try:
-        marker = get_marker_filename(tmp, *indices)
+        marker = get_marker_filename(tmp, index)
 
         with open(f"{marker}.out", "w") as out, open(f"{marker}.err", "w") as err:
             subprocess.run(command.split(" "), check=True, stdout=out, stderr=err)
 
         return {"index" : index, "success": True}
-
+    except subprocess.CalledProcessError as e:
+        return {"index": index, "success" : False, "error" : repr(e), "message" : e.output}
     except Exception as e:
         return {"index": index, "success" : False, "error" : repr(e), "message" : e}
 
@@ -336,9 +338,8 @@ class CavemanFlags():
                 continue
 
             if value == bool:
-                parser.add_argument(short_flag, long_flag, action=argparse.BooleanOptionalAction, default=False)
+                parser.add_argument(short_flag, long_flag, action="store_true")
                 continue
 
             parser.add_argument(short_flag, long_flag, type=value)
         return parser
-
