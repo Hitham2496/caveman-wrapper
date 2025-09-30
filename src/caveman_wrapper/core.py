@@ -1143,7 +1143,7 @@ class CavemanRunner():
         if not self.check_exec_in_path(tabix):
             raise FileNotFoundError(f"`tabix` could not be found in $PATH")
 
-        bgzip_command = f"{bgzip} -c {self.flagged} > {vcf_gz}"
+        bgzip_command = f"{bgzip} -c -o {vcf_gz} {self.flagged}"
         tabix_command = f"{tabix} -p vcf {vcf_gz}"
         commands = [bgzip_command, tabix_command]
 
@@ -1176,11 +1176,11 @@ class CavemanRunner():
             raise FileNotFoundError(f"`tabix` could not be found in $PATH")
 
         vcf_muts_gz = f"{self.ids_muts_file}.gz"
-        bgzip_muts_command = f"{bgzip} -c {self.ids_muts_file} > {vcf_muts_gz}"
+        bgzip_muts_command = f"{bgzip} -c -o {vcf_muts_gz} {self.ids_muts_file}"
         tabix_muts_command = f"{tabix} -p vcf {vcf_muts_gz}"
 
         vcf_snps_gz = f"{self.ids_snps_file}.gz"
-        bgzip_snps_command = f"{bgzip} -c {self.ids_snps_file} > {vcf_snps_gz}"
+        bgzip_snps_command = f"{bgzip} -c -o {vcf_snps_gz} {self.ids_snps_file}"
         tabix_snps_command = f"{tabix} -p vcf {vcf_snps_gz}"
 
         commands = [bgzip_muts_command, tabix_muts_command, bgzip_snps_command, tabix_snps_command]
