@@ -121,8 +121,10 @@ def get_marker_filename(tmp, *indices):
     Get the filename for PCAP::Threaded progress tracking utility
     functions `success_exists` and `touch_success`
     """
-    frame = inspect.stack()[1]
-    caller = f"{frame.frame.f_globals['__name__']}_{frame.function}".replace('.', '_')
+    # Previous caller used was too high in the tree
+    # f"{frame.frame.f_globals['__name__']}_{frame.function}".replace('.', '_')
+    # Need two frames back (worker/touch_success/success_exists -> {caller}
+    caller = inspect.getframeinfo(inspect.currentframe().f_back.f_back)[2]
     if indices:
         suffix = '.'.join(str(i) for i in indices)
         return  Path(tmp) / f"{caller}.{suffix}"
@@ -175,7 +177,7 @@ def worker(tmp, command, index):
         the associated exception.
     """
     try:
-        marker = get_marker_filename(tmp, *indices)
+        marker = get_marker_filename(tmp, index)
 
         with open(f"{marker}.out", "w") as out, open(f"{marker}.err", "w") as err:
             subprocess.run(command.split(" "), check=True, stdout=out, stderr=err)
