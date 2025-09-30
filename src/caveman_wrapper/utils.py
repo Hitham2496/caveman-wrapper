@@ -143,7 +143,7 @@ def success_exists(tmp, *indices):
         return True
     return False
 
-def touch_success(tmp, name: str, *indices):
+def touch_success(tmp, *indices):
     """
     Utility function to replicate progress logging of
     PCAP::Threaded::touch_success.
