@@ -88,7 +88,7 @@ class CavemanRunner():
             if key not in allowed_keys:
                 raise ValueError(f"Key '{key}' is not recognised as an option for caveman")
 
-            if not isinstance(kwargs[key], allowed_keys[key]):
+            if kwargs[key] is not None and not isinstance(kwargs[key], allowed_keys[key]):
                 raise ValueError(f"The value provided for the parameter '{key}' should be of type: {allowed_keys[key]}")
 
             setattr(self, key, kwargs[key])
