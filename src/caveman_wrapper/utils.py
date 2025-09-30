@@ -117,7 +117,7 @@ def check_outdir(directory_name: str):
             print(e, file=sys.stderr)
             print(f"Error creating output directory {directory_name}", file=sys.stderr)
 
-def get_marker_filename(tmp, name: str, *indices):
+def get_marker_filename(tmp, *indices):
     """
     Get the filename for PCAP::Threaded progress tracking utility
     functions `success_exists` and `touch_success`
@@ -132,12 +132,12 @@ def get_marker_filename(tmp, name: str, *indices):
 
     return Path(tmp) / f"{caller}"
 
-def success_exists(tmp, name: str, *indices):
+def success_exists(tmp, *indices):
     """
     Utility function to replicate progress checking of
     PCAP::Threaded::success_exists.
     """
-    marker = get_marker_filename(tmp, name, *indices)
+    marker = get_marker_filename(tmp, *indices)
     if marker.exists():
         print(f"Skipping {marker.name} as previously successful")
         return True
@@ -148,12 +148,12 @@ def touch_success(tmp, name: str, *indices):
     Utility function to replicate progress logging of
     PCAP::Threaded::touch_success.
     """
-    marker = get_marker_filename(tmp, name, *indices)
+    marker = get_marker_filename(tmp, *indices)
     marker.parent.mkdir(parents=True, exist_ok=True)
     marker.touch()
     return True
 
-def worker(tmp: str, command: str, name: str, index: int):
+def worker(tmp: str, command: str, index: int):
     """
     A worker method to run a specific command with a given
     index to report errors.

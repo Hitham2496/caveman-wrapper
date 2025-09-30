@@ -499,7 +499,7 @@ class CavemanRunner():
 
         # Only one process is required for setup, set index to 0.
         index = 0
-        final_result = worker(self.log_dir, command, "setup", index)
+        final_result = worker(self.log_dir, command, index)
 
         if not final_result["success"]:
             print(f"Setup stage failed for {final_result['index']}", file=sys.stderr)
@@ -565,7 +565,7 @@ class CavemanRunner():
                 command += f"-f {self.cave_cfg} "
                 command += f"-e {self.read_count}"
 
-                result = pool.apply_async(worker, args=(self.log_dir, command, "setup", idx+1,))
+                result = pool.apply_async(worker, args=(self.log_dir, command, idx+1,))
                 async_results.append(result)
 
             for item in async_results:
@@ -644,7 +644,7 @@ class CavemanRunner():
                 command = f"caveman mstep -i {value} "
                 command += f"-f {self.cave_cfg}"
 
-                result = pool.apply_async(worker, args=(self.log_dir, command, "mstep", idx+1,))
+                result = pool.apply_async(worker, args=(self.log_dir, command, idx+1,))
                 async_results.append(result)
 
             for item in async_results:
@@ -686,7 +686,7 @@ class CavemanRunner():
 
         # Only one process is required for setup, set index to 0.
         index = 0
-        final_result = worker(self.log_dir, command, "merge", index)
+        final_result = worker(self.log_dir, command, index)
 
         if not final_result["success"]:
             print(f"Merge stage failed for {final_result['index']}", file=sys.stderr)
@@ -786,7 +786,7 @@ class CavemanRunner():
                 if getattr(self, "debug_cave", None):
                     command += f"-s "
 
-                result = pool.apply_async(worker, args=(self.log_dir, command, "estep", idx+1,))
+                result = pool.apply_async(worker, args=(self.log_dir, command, idx+1,))
                 async_results.append(result)
 
             for item in async_results:
@@ -841,7 +841,7 @@ class CavemanRunner():
 
         # Only one process is required for setup, set index to 0.
         sub_index = 0
-        sub_final_result = worker(self.log_dir, sub_command, "merge_muts", sub_index)
+        sub_final_result = worker(self.log_dir, sub_command, sub_index)
         sub_success = touch_success(f"{self.progress_dir}/merge_muts", sub_final_result["index"])
         if not sub_success:
             print(f"Merging results failed for mutations stage failed", file=sys.stderr)
@@ -854,7 +854,7 @@ class CavemanRunner():
 
         # Only one process is required for setup, set index to 0.
         snp_index = 0
-        snp_final_result = worker(self.log_dir, snp_command, "merge_snps", snp_index)
+        snp_final_result = worker(self.log_dir, snp_command, snp_index)
         snp_success = touch_success(f"{self.progress_dir}/merge_snps", snp_final_result["index"])
         if not snp_success:
             print(f"Merging results failed for SNP stage failed", file=sys.stderr)
@@ -868,7 +868,7 @@ class CavemanRunner():
 
             # Only one process is required for setup, set index to 0.
             no_analysis_index = 0
-            no_analysis_final_result = worker(self.log_dir, no_analysis_command, "merge_analysis", no_analysis_index)
+            no_analysis_final_result = worker(self.log_dir, no_analysis_command, no_analysis_index)
             # Extend no analysis region
             self.extend_no_analysis(f"{out_file}.no_analysis.bed")
             no_analysis_success = touch_success(f"{self.progress_dir}/merge_no_analysis", no_analysis_final_result["index"]) 
