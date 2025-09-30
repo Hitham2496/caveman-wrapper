@@ -1071,7 +1071,13 @@ class CavemanRunner():
             return True
         
         # Concatenate all {self.split_list}.* files to {self.split_list}
-        command = f"cat {self.split_list}.* > {self.split_list}"
+        file_pattern = f"{self.split_list}.*"
+        file_list = glob.glob(file_pattern)
+
+        with open(self.split_list, 'w') as outfile:
+            for fname in sorted(file_list):
+                with open(fname, 'r') as infile:
+                    outfile.write(infile.read())
 
         # Only one process is required for setup, set index to 0.
         index = 0
