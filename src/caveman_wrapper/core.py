@@ -10,8 +10,9 @@ import glob
 import pysam
 import shutil
 import warnings
-import subprocess
-from multiprocessing import Pool
+from .utils import *
+import glob
+
 
 from .utils import *
 class CavemanRunner():
@@ -88,8 +89,7 @@ class CavemanRunner():
         for key in kwargs:
             if key not in allowed_keys:
                 raise ValueError(f"Key '{key}' is not recognised as an option for caveman")
-		
-            # Check for attr type of non-None keys
+
             if kwargs[key] is not None and not isinstance(kwargs[key], allowed_keys[key]):
                 raise ValueError(f"The value provided for the parameter '{key}' should be of type: {allowed_keys[key]}")
 
@@ -122,7 +122,6 @@ class CavemanRunner():
         print("This will become the manual")
 
     def check_exec_in_path(self, executable="caveman"):
-#export NXF_PLUGINS_DEV="$HOME/git/nf-schema";
         """
         Attempts to locate an executable for caveman in $PATH,
         by default looks for `caveman`.
@@ -482,15 +481,15 @@ class CavemanRunner():
         if not self.check_exec_in_path():
             raise FileNotFoundError("`caveman` could not be found in $PATH")
 
-        command =  (f"caveman setup " +
-                    f"-t {self.tumour_bam} " +
-                    f"-n {self.normal_bam} " +
-                    f"-r {self.reference} " +
-                    f"-g {self.ignore_file} " +
-                    f"-l {self.split_list} " +
-                    f"-f {self.results_dir} " +
-                    f"-c {self.cave_cfg} " +
-                    f"-a {self.alg_bean} ")
+        command = f"caveman setup "
+        command += f"-t {self.tumour_bam} "
+        command += f"-n {self.normal_bam} "
+        command += f"-r {self.reference} "
+        command += f"-g {self.ignore_file} "
+        command += f"-l {self.split_list} "
+        command += f"-f {self.results_dir} "
+        command += f"-c {self.cave_cfg} "
+        command += f"-a {self.alg_bean} "
 
         if getattr(self, "normal_cn", None):
             command += f"-j {self.normal_cn} "
@@ -562,9 +561,9 @@ class CavemanRunner():
                 if success_exists(self.progress_dir, idx+1):
                     continue
 
-                command = (f"caveman split -i {value} " +
-                            f"-f {self.cave_cfg} " +
-                            f"-e {self.read_count}")
+                command = f"caveman split -i {value} "
+                command += f"-f {self.cave_cfg} "
+                command += f"-e {self.read_count}"
 
                 result = pool.apply_async(worker, args=(self.log_dir, command, "setup", idx+1,))
                 async_results.append(result)
@@ -642,8 +641,8 @@ class CavemanRunner():
                 if success_exists(self.progress_dir, idx+1):
                     continue
 
-                command = (f"caveman mstep -i {value} " +
-                            f"-f {self.cave_cfg}")
+                command = f"caveman mstep -i {value} "
+                command += f"-f {self.cave_cfg}"
 
                 result = pool.apply_async(worker, args=(self.log_dir, command, "mstep", idx+1,))
                 async_results.append(result)
@@ -680,10 +679,10 @@ class CavemanRunner():
         if success_exists(self.progress_dir, 0):
             return True
         
-        command = (f"caveman merge " +
-                    f"-c {self.cave_carr} " +
-                    f"-p {self.cave_parr} " +
-                    f"-f {self.cave_cfg}")
+        command = f"caveman merge "
+        command += f"-c {self.cave_carr} "
+        command += f"-p {self.cave_parr} "
+        command += f"-f {self.cave_cfg}"
 
         # Only one process is required for setup, set index to 0.
         index = 0
@@ -750,15 +749,15 @@ class CavemanRunner():
                 if success_exists(self.progress_dir, idx+1):
                     continue
 
-                command = (f"caveman estep -i {value} " +
-                            f"-k {self.normcont_value} " + 
-                            f"-g {self.cave_carr} " +
-                            f"-o {self.cave_parr} " +
-                            f"-v {self.species_assembly} " + 
-                            f"-w {self.species} " +
-                            f"-f {self.cave_cfg} " +
-                            f"-l {self.normal_protocol} " + 
-                            f"-r {self.tumour_protocol} ")
+                command = f"caveman estep -i {value} "
+                command += f"-k {self.normcont_value} "
+                command += f"-g {self.cave_carr} "
+                command += f"-o {self.cave_parr} "
+                command += f"-v {self.species_assembly} "
+                command += f"-w {self.species} "
+                command += f"-f {self.cave_cfg} "
+                command += f"-l {self.normal_protocol} "
+                command += f"-r {self.tumour_protocol} "
 
                 if getattr(self, "norm_cn_default", None):
                     command += f"-n {self.norm_cn_default} "
@@ -912,9 +911,9 @@ class CavemanRunner():
         if not self.check_exec_in_path(executable):
             raise FileNotFoundError(f"`{executable}` could not be found in $PATH")
 
-        command = (f"perl {executable} " +
-                    f"-i {raw_file} " +
-                    f"-o {ids_file}")
+        command = f"perl {executable} "
+        command += f"-i {raw_file} "
+        command += f"-o {ids_file}"
 
         final_result = worker(self.log_dir, command, 0)
         if not touch_success(f"{self.progress_dir}/{snps_or_muts}"):
@@ -965,18 +964,18 @@ class CavemanRunner():
                 if success_exists(self.progress_dir, idx+1):
                     continue
 
-                command = (f"perl {executable} " +
-                            f"-i {self.split_out}.{value} " +
-                            f"-o {self.flagged}.{value} " +
-                            f"-s {self.species} " +
-                            f"-m {self.tumour_bam} " +
-                            f"-n {self.normal_bam} " +
-                            f"-b {self.flag_bed} " +
-                            f"-g {self.germindel} " +
-                            f"-umv {self.unmatched_vcf} " +
-                            f"-ref {self.reference} " +
-                            f"-t {self.seqType} " +
-                            f"-sa {self.species_assembly} ")
+                command = f"perl {executable} "
+                command += f"-i {self.split_out}.{value} "
+                command += f"-o {self.flagged}.{value} "
+                command += f"-s {self.species} "
+                command += f"-m {self.tumour_bam} "
+                command += f"-n {self.normal_bam} "
+                command += f"-b {self.flag_bed} "
+                command += f"-g {self.germindel} "
+                command += f"-umv {self.unmatched_vcf} "
+                command += f"-ref {self.reference} "
+                command += f"-t {self.seqType} "
+                command += f"-sa {self.species_assembly} "
 
                 if getattr(self, "flagConfig", None):
                     command += f"-c {self.flagConfig} "
@@ -1035,11 +1034,11 @@ class CavemanRunner():
         if not self.check_exec_in_path(executable):
             raise FileNotFoundError(f"`{executable}` could not be found in $PATH")
 
-        command = (f"perl {executable} " + 
-                    f"-i {self.for_split} " +
-                    f"-o {self.split_out} " + 
-                    f"-s " + 
-                    f"-l {CavemanConstants.SPLIT_LINE_COUNT}")
+        command = f"perl {executable} "
+        command += f"-i {self.for_split} "
+        command += f"-o {self.split_out} "
+        command += f"-s "
+        command += f"-l {CavemanConstants.SPLIT_LINE_COUNT}"
 
         final_result = worker(self.log_dir, command, 0)
         if not touch_success(f"{self.progress_dir}", 0):
@@ -1065,7 +1064,6 @@ class CavemanRunner():
             Number of files matching the pattern `match_pattern`
         """
         try:
-            # Use glob for safety and simplicity
             files = glob.glob(match_pattern)
             return len(files)
         except Exception as e:
@@ -1080,15 +1078,21 @@ class CavemanRunner():
             return True
         
         # Concatenate all {self.split_list}.* files to {self.split_list}
-        try:
-            files = sorted(glob.glob(f"{self.split_list}.*"))
-            with open(self.split_list, "wb") as out:
-                for p in files:
-                    with open(p, "rb") as f:
-                        shutil.copyfileobj(f, out)
-        except Exception as e:
-            print(f"Concat split_list failed", file=sys.stderr)
-            print(f"Error: {e}", file=sys.stderr)
+        file_pattern = f"{self.split_list}.*"
+        file_list = glob.glob(file_pattern)
+
+        with open(self.split_list, 'w') as outfile:
+            for fname in sorted(file_list):
+                with open(fname, 'r') as infile:
+                    outfile.write(infile.read())
+
+        # Only one process is required for setup, set index to 0.
+        index = 0
+        final_result = worker(self.log_dir, command, index)
+
+        if not final_result["success"]:
+            print(f"Concat failed for command: `{command}`", file=sys.stderr)
+            print(f"Error: {final_result['error']}", file=sys.stderr)
             return False
 
         # Assume index 0, only does once
@@ -1147,7 +1151,7 @@ class CavemanRunner():
         if not self.check_exec_in_path(tabix):
             raise FileNotFoundError(f"`tabix` could not be found in $PATH")
 
-        bgzip_command = f"{bgzip} -c {self.flagged} > {vcf_gz}"
+        bgzip_command = f"{bgzip} -c -o {vcf_gz} {self.flagged}"
         tabix_command = f"{tabix} -p vcf {vcf_gz}"
         commands = [bgzip_command, tabix_command]
 
@@ -1180,11 +1184,11 @@ class CavemanRunner():
             raise FileNotFoundError(f"`tabix` could not be found in $PATH")
 
         vcf_muts_gz = f"{self.ids_muts_file}.gz"
-        bgzip_muts_command = f"{bgzip} -c {self.ids_muts_file} > {vcf_muts_gz}"
+        bgzip_muts_command = f"{bgzip} -c -o {vcf_muts_gz} {self.ids_muts_file}"
         tabix_muts_command = f"{tabix} -p vcf {vcf_muts_gz}"
 
         vcf_snps_gz = f"{self.ids_snps_file}.gz"
-        bgzip_snps_command = f"{bgzip} -c {self.ids_snps_file} > {vcf_snps_gz}"
+        bgzip_snps_command = f"{bgzip} -c -o {vcf_snps_gz} {self.ids_snps_file}"
         tabix_snps_command = f"{tabix} -p vcf {vcf_snps_gz}"
 
         commands = [bgzip_muts_command, tabix_muts_command, bgzip_snps_command, tabix_snps_command]

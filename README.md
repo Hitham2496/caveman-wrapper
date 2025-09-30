@@ -12,13 +12,10 @@ This wrapper script replaces the original Perl implementation with multiprocesse
 - Providing cleanup and resource management
 
 ## Prerequisites
-- Python 3.5+
+- Python 3.6+
 - CaVEMan and its dependencies installed and available in PATH (e.g. in a singularity container)
 - Required non-standard Python packages:
   - pysam
-  - multiprocessing
-  - subprocess
-  - pathlib
 
 The following executables must be in your PATH:
 - `caveman`
