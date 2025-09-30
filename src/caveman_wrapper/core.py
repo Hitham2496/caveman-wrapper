@@ -480,20 +480,21 @@ class CavemanRunner():
             raise FileNotFoundError("`caveman` could not be found in $PATH")
 
         command = f"caveman setup "
-        f"-t {self.tumour_bam} "
-        f"-n {self.normal_bam} "
-        f"-r {self.reference} "
-        f"-g {self.ignore_file} "
-        f"-l {self.split_list} "
-        f"-f {self.results_dir} "
-        f"-c {self.cave_cfg} "
-        f"-a {self.alg_bean} "
+        command += f"-t {self.tumour_bam} "
+        command += f"-n {self.normal_bam} "
+        command += f"-r {self.reference} "
+        command += f"-g {self.ignore_file} "
+        command += f"-l {self.split_list} "
+        command += f"-f {self.results_dir} "
+        command += f"-c {self.cave_cfg} "
+        command += f"-a {self.alg_bean} "
+        print(command) #WE ARE HERE
 
         if getattr(self, "normal_cn", None):
-            command += f"-j {self.normal_cn}"
+            command += f"-j {self.normal_cn} "
 
         if getattr(self, "tumour_cn", None):
-            command += f"-e {self.tumour_cn}"
+            command += f"-e {self.tumour_cn} "
 
         # Only one process is required for setup, set index to 0.
         index = 0
@@ -560,8 +561,8 @@ class CavemanRunner():
                     continue
 
                 command = f"caveman split -i {value} "
-                f"-f {self.cave_cfg} "
-                f"-e {self.read_count}"
+                command += f"-f {self.cave_cfg} "
+                command += f"-e {self.read_count}"
 
                 result = pool.apply_async(worker, args=(self.log_dir, command, idx+1,))
                 async_results.append(result)
@@ -639,7 +640,7 @@ class CavemanRunner():
                     continue
 
                 command = f"caveman mstep -i {value} "
-                f"-f {self.cave_cfg}"
+                command += f"-f {self.cave_cfg}"
 
                 result = pool.apply_async(worker, args=(self.log_dir, command, idx+1,))
                 async_results.append(result)
@@ -676,9 +677,9 @@ class CavemanRunner():
             return True
         
         command = f"caveman merge "
-        f"-c {self.cave_carr} "
-        f"-p {self.cave_parr} "
-        f"-f {self.cave_cfg}"
+        command += f"-c {self.cave_carr} "
+        command += f"-p {self.cave_parr} "
+        command += f"-f {self.cave_cfg}"
 
         # Only one process is required for setup, set index to 0.
         index = 0
@@ -745,14 +746,14 @@ class CavemanRunner():
                     continue
 
                 command = f"caveman estep -i {value} "
-                f"-k {self.normcont_value} "
-                f"-g {self.cave_carr} "
-                f"-o {self.cave_parr} "
-                f"-v {self.species_assembly} "
-                f"-w {self.species} "
-                f"-f {self.cave_cfg} "
-                f"-l {self.normal_protocol} "
-                f"-r {self.tumour_protocol} "
+                command += f"-k {self.normcont_value} "
+                command += f"-g {self.cave_carr} "
+                command += f"-o {self.cave_parr} "
+                command += f"-v {self.species_assembly} "
+                command += f"-w {self.species} "
+                command += f"-f {self.cave_cfg} "
+                command += f"-l {self.normal_protocol} "
+                command += f"-r {self.tumour_protocol} "
 
                 if getattr(self, "norm_cn_default", None):
                     command += f"-n {self.norm_cn_default} "
@@ -906,8 +907,8 @@ class CavemanRunner():
             raise FileNotFoundError(f"`{executable}` could not be found in $PATH")
 
         command = f"perl {executable} "
-        f"-i {raw_file} "
-        f"-o {ids_file}"
+        command += f"-i {raw_file} "
+        command += f"-o {ids_file}"
 
         final_result = worker(self.log_dir, command, 0)
         if not touch_success(f"{self.progress_dir}/{snps_or_muts}"):
@@ -958,17 +959,17 @@ class CavemanRunner():
                     continue
 
                 command = f"perl {executable} "
-                f"-i {self.split_out}.{value} "
-                f"-o {self.flagged}.{value} "
-                f"-s {self.species} "
-                f"-m {self.tumour_bam} "
-                f"-n {self.normal_bam} "
-                f"-b {self.flag_bed} "
-                f"-g {self.germindel} "
-                f"-umv {self.unmatched_vcf} "
-                f"-ref {self.reference} "
-                f"-t {self.seqType} "
-                f"-sa {self.species_assembly} "
+                command += f"-i {self.split_out}.{value} "
+                command += f"-o {self.flagged}.{value} "
+                command += f"-s {self.species} "
+                command += f"-m {self.tumour_bam} "
+                command += f"-n {self.normal_bam} "
+                command += f"-b {self.flag_bed} "
+                command += f"-g {self.germindel} "
+                command += f"-umv {self.unmatched_vcf} "
+                command += f"-ref {self.reference} "
+                command += f"-t {self.seqType} "
+                command += f"-sa {self.species_assembly} "
 
                 if getattr(self, "flagConfig", None):
                     command += f"-c {self.flagConfig} "
@@ -1027,10 +1028,10 @@ class CavemanRunner():
             raise FileNotFoundError(f"`{executable}` could not be found in $PATH")
 
         command = f"perl {executable} "
-        f"-i {self.for_split} "
-        f"-o {self.split_out} "
-        f"-s "
-        f"-l {CavemanConstants.SPLIT_LINE_COUNT}"
+        command += f"-i {self.for_split} "
+        command += f"-o {self.split_out} "
+        command += f"-s "
+        command += f"-l {CavemanConstants.SPLIT_LINE_COUNT}"
 
         final_result = worker(self.log_dir, command, 0)
         if not touch_success(f"{self.progress_dir}", 0):
