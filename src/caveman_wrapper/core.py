@@ -12,6 +12,8 @@ from multiprocessing import Pool
 import pysam
 import warnings
 from .utils import *
+import glob
+
 
 class CavemanRunner():
     """
@@ -1055,8 +1057,6 @@ class CavemanRunner():
             Number of files matching the pattern `match_pattern`
         """
         try:
-            # Use glob for safety and simplicity
-            import glob
             files = glob.glob(match_pattern)
             return len(files)
         except Exception as e:
