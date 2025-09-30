@@ -6,8 +6,9 @@ Core class to run caveman with parameters provided by user
 This script uses multiprocessing to ensure that CPU resource
 allocated by HPC schedulers are adequately used
 """
-import time
+import glob
 import pysam
+import shutil
 import warnings
 import subprocess
 from multiprocessing import Pool
@@ -88,9 +89,9 @@ class CavemanRunner():
             if key not in allowed_keys:
                 raise ValueError(f"Key '{key}' is not recognised as an option for caveman")
 		
-	    # TODO - remove when not testing
-            #if not isinstance(kwargs[key], allowed_keys[key]):
-            #    raise ValueError(f"The value provided for the parameter '{key}' should be of type: {allowed_keys[key]}")
+            # Check for attr type of non-None keys
+            if kwargs[key] is not None and not isinstance(kwargs[key], allowed_keys[key]):
+                raise ValueError(f"The value provided for the parameter '{key}' should be of type: {allowed_keys[key]}")
 
             setattr(self, key, kwargs[key])
 
@@ -492,14 +493,14 @@ class CavemanRunner():
                     f"-a {self.alg_bean} ")
 
         if getattr(self, "normal_cn", None):
-            command += f"-j {self.normal_cn}"
+            command += f"-j {self.normal_cn} "
 
         if getattr(self, "tumour_cn", None):
-            command += f"-e {self.tumour_cn}"
+            command += f"-e {self.tumour_cn} "
 
         # Only one process is required for setup, set index to 0.
         index = 0
-        final_result = worker(self.log_dir, command, index)
+        final_result = worker(self.log_dir, command, "setup", index)
 
         if not final_result["success"]:
             print(f"Setup stage failed for {final_result['index']}", file=sys.stderr)
@@ -565,7 +566,7 @@ class CavemanRunner():
                             f"-f {self.cave_cfg} " +
                             f"-e {self.read_count}")
 
-                result = pool.apply_async(worker, args=(self.log_dir, command, idx+1,))
+                result = pool.apply_async(worker, args=(self.log_dir, command, "setup", idx+1,))
                 async_results.append(result)
 
             for item in async_results:
@@ -575,6 +576,7 @@ class CavemanRunner():
                 if not final_result["success"]:
                     print(f"Split stage failed for {final_result['index']}", file=sys.stderr)
                     print(f"Error: {final_result['error']}", file=sys.stderr)
+                    print(f"Message: {final_result['message']}", file=sys.stderr)
                     errors_raised = True
                 elif not touch_success(self.progress_dir, final_result["index"]):
                     # touch_success os called, so if not successful count as an error
@@ -643,7 +645,7 @@ class CavemanRunner():
                 command = (f"caveman mstep -i {value} " +
                             f"-f {self.cave_cfg}")
 
-                result = pool.apply_async(worker, args=(self.log_dir, command, idx+1,))
+                result = pool.apply_async(worker, args=(self.log_dir, command, "mstep", idx+1,))
                 async_results.append(result)
 
             for item in async_results:
@@ -653,6 +655,7 @@ class CavemanRunner():
                 if not final_result["success"]:
                     print(f"Split stage failed for {final_result['index']}", file=sys.stderr)
                     print(f"Error: {final_result['error']}", file=sys.stderr)
+                    print(f"Message: {final_result['message']}", file=sys.stderr)
                     errors_raised = True
                 elif not touch_success(self.progress_dir, final_result["index"]):
                     # touch_success is called, so if not successful count as an error
@@ -684,11 +687,12 @@ class CavemanRunner():
 
         # Only one process is required for setup, set index to 0.
         index = 0
-        final_result = worker(self.log_dir,command, index)
+        final_result = worker(self.log_dir, command, "merge", index)
 
         if not final_result["success"]:
             print(f"Merge stage failed for {final_result['index']}", file=sys.stderr)
             print(f"Error: {final_result['error']}", file=sys.stderr)
+            print(f"Message: {final_result['message']}", file=sys.stderr)
             return False
 
         return touch_success(self.progress_dir, final_result["index"])
@@ -783,7 +787,7 @@ class CavemanRunner():
                 if getattr(self, "debug_cave", None):
                     command += f"-s "
 
-                result = pool.apply_async(worker, args=(self.log_dir, command, idx+1,))
+                result = pool.apply_async(worker, args=(self.log_dir, command, "estep", idx+1,))
                 async_results.append(result)
 
             for item in async_results:
@@ -793,6 +797,7 @@ class CavemanRunner():
                 if not final_result["success"]:
                     print(f"Split stage failed for {final_result['index']}", file=sys.stderr)
                     print(f"Error: {final_result['error']}", file=sys.stderr)
+                    print(f"Message: {final_result['message']}", file=sys.stderr)
                     errors_raised = True
                 elif not touch_success(self.progress_dir, final_result["index"]):
                     # touch_success is called, so if not successful count as an error
@@ -837,7 +842,7 @@ class CavemanRunner():
 
         # Only one process is required for setup, set index to 0.
         sub_index = 0
-        sub_final_result = worker(self.log_dir, sub_command, sub_index)
+        sub_final_result = worker(self.log_dir, sub_command, "merge_muts", sub_index)
         sub_success = touch_success(f"{self.progress_dir}/merge_muts", sub_final_result["index"])
         if not sub_success:
             print(f"Merging results failed for mutations stage failed", file=sys.stderr)
@@ -850,7 +855,7 @@ class CavemanRunner():
 
         # Only one process is required for setup, set index to 0.
         snp_index = 0
-        snp_final_result = worker(self.log_dir, snp_command, snp_index)
+        snp_final_result = worker(self.log_dir, snp_command, "merge_snps", snp_index)
         snp_success = touch_success(f"{self.progress_dir}/merge_snps", snp_final_result["index"])
         if not snp_success:
             print(f"Merging results failed for SNP stage failed", file=sys.stderr)
@@ -864,7 +869,7 @@ class CavemanRunner():
 
             # Only one process is required for setup, set index to 0.
             no_analysis_index = 0
-            no_analysis_final_result = worker(self.log_dir, no_analysis_command, no_analysis_index)
+            no_analysis_final_result = worker(self.log_dir, no_analysis_command, "merge_analysis", no_analysis_index)
             # Extend no analysis region
             self.extend_no_analysis(f"{out_file}.no_analysis.bed")
             no_analysis_success = touch_success(f"{self.progress_dir}/merge_no_analysis", no_analysis_final_result["index"]) 
@@ -915,6 +920,7 @@ class CavemanRunner():
         if not touch_success(f"{self.progress_dir}/{snps_or_muts}"):
             print(f"caveman_add_vcf_ids (calling {executable}) failed", file=sys.stderr)
             print(f"Error: {final_result['error']}", file=sys.stderr)
+            print(f"Message: {final_result['message']}", file=sys.stderr)
             return False
 
         return True
@@ -994,6 +1000,7 @@ class CavemanRunner():
                 if not final_result["success"]:
                     print(f"Flag stage failed for {final_result['index']}", file=sys.stderr)
                     print(f"Error: {final_result['error']}", file=sys.stderr)
+                    print(f"Message: {final_result['message']}", file=sys.stderr)
                     errors_raised = True
                 elif not touch_success(self.progress_dir, final_result["index"]):
                     # touch_success is called, so if not successful count as an error
@@ -1038,6 +1045,7 @@ class CavemanRunner():
         if not touch_success(f"{self.progress_dir}", 0):
             print(f"caveman_split_vcf (calling {executable}) failed", file=sys.stderr)
             print(f"Error: {final_result['error']}", file=sys.stderr)
+            print(f"Message: {final_result['message']}", file=sys.stderr)
             return False
 
         return True
@@ -1058,7 +1066,6 @@ class CavemanRunner():
         """
         try:
             # Use glob for safety and simplicity
-            import glob
             files = glob.glob(match_pattern)
             return len(files)
         except Exception as e:
@@ -1073,18 +1080,19 @@ class CavemanRunner():
             return True
         
         # Concatenate all {self.split_list}.* files to {self.split_list}
-        command = f"cat {self.split_list}.* > {self.split_list}"
-
-        # Only one process is required for setup, set index to 0.
-        index = 0
-        final_result = worker(self.log_dir, command, index)
-
-        if not final_result["success"]:
-            print(f"Concat failed for command: `{command}`", file=sys.stderr)
-            print(f"Error: {final_result['error']}", file=sys.stderr)
+        try:
+            files = sorted(glob.glob(f"{self.split_list}.*"))
+            with open(self.split_list, "wb") as out:
+                for p in files:
+                    with open(p, "rb") as f:
+                        shutil.copyfileobj(f, out)
+        except Exception as e:
+            print(f"Concat split_list failed", file=sys.stderr)
+            print(f"Error: {e}", file=sys.stderr)
             return False
 
-        return touch_success(self.progress_dir, final_result["index"])
+        # Assume index 0, only does once
+        return touch_success(self.progress_dir, 0)
 
     def concat_flagged(self):
         """
