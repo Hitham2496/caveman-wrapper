@@ -488,7 +488,6 @@ class CavemanRunner():
         command += f"-f {self.results_dir} "
         command += f"-c {self.cave_cfg} "
         command += f"-a {self.alg_bean} "
-        print(command) #WE ARE HERE
 
         if getattr(self, "normal_cn", None):
             command += f"-j {self.normal_cn} "
