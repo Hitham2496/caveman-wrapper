@@ -1074,21 +1074,18 @@ class CavemanRunner():
         file_pattern = f"{self.split_list}.*"
         file_list = glob.glob(file_pattern)
 
-        with open(self.split_list, 'w') as outfile:
-            for fname in sorted(file_list):
-                with open(fname, 'r') as infile:
-                    outfile.write(infile.read())
-
-        # Only one process is required for setup, set index to 0.
-        index = 0
-        final_result = worker(self.log_dir, command, index)
-
-        if not final_result["success"]:
-            print(f"Concat failed for command: `{command}`", file=sys.stderr)
-            print(f"Error: {final_result['error']}", file=sys.stderr)
+        try:
+            with open(self.split_list, 'w') as outfile:
+                for fname in sorted(file_list):
+                    with open(fname, 'r') as infile:
+                        outfile.write(infile.read())
+        except Exception as e:
+            print(f"Concat failed.", file=sys.stderr)
+            print(f"Error: {e}", file=sys.stderr)
             return False
 
-        return touch_success(self.progress_dir, final_result["index"])
+        index = 0
+        return touch_success(self.progress_dir, index)
 
     def concat_flagged(self):
         """
