@@ -1,10 +1,13 @@
 #  CaVEMan Wrapper
 
-A Python wrapper for the [CaVEMan (Cancer Variants Through Expectation Maximization)](https://github.com/cancerit/CaVEMan) variant caller, designed for efficient execution on HPC clusters using multiprocessing where Perl threading was employed by the previous wrapper to avoid underutilising platform resources (i.e. cores provided by LSF/other schedulers).
+A Python wrapper for the [CaVEMan (Cancer Variants Through Expectation Maximization)](https://github.com/cancerit/CaVEMan)
+variant caller, designed for efficient execution on HPC clusters using multiprocessing where Perl threading was employed
+by the previous wrapper to avoid underutilising platform resources (i.e. cores provided by LSF/other schedulers).
 
 ## Overview
 
-This wrapper script replaces the original Perl implementation with multiprocessed Python version to distribute work across HPC resources without threading. Full compatibility with short flag names is ensured with the original.
+This wrapper script replaces the original Perl implementation with multiprocessed Python version to distribute work across
+HPC resources without threading. Full compatibility with short flag names is ensured with the original.
 - Setting up and managing CaVEMan configuration
 - Splitting jobs for parallel processing
 - Managing variant calling workflow stages
@@ -34,6 +37,34 @@ git clone https://github.com/Hitham2496/caveman-wrapper.git
 cd caveman-wrapper
 pip install -e .
 ```
+
+### Singularity
+
+A possible configuration for Singularity is provided in `singularity_config`.
+
+The options `</path/to/caveman_wrapper>` and `</path/to/caveman_wrapper>`
+, where the first is the location of the current caveman wrapper image, and
+the second is the location of your local checkout of this repository, need to
+be procided.
+
+This can be built with:
+
+```bash
+singularity build singularity_config/cgp_caveman_wrapper.config cgp_caveman_wrapper.sif
+```
+
+Then an executable developed against the library (see 'Usage')  can be run in a container
+derived from the image as such (e.g. if using Sanger HPC, with the lustre file system):
+
+```bash
+singularity exec --bind /lustre:/lustre singularity_config/cavemanwrapper/cgp_caveman_new.sif bash
+```
+
+This will start an interactive session in a container containing the installed library
+and dependencies, as well as any files (such as your executable) in the bound filesystem.
+
+You can also directly execute the executable (i.e. without opening an interactive session),
+this will be the easiest path for adapting to HPC.
 
 ## Usage
 
@@ -127,9 +158,9 @@ The wrapper generates the following key output files in the specified output dir
 
 ```
 outdir/
-├── logs/                    # Log files for each process
 ├── tmpCaveman/             # Temporary processing files
 │   ├── results/            # Intermediate results
+│   ├── logs/               # Log files for each process
 │   └── progress/           # Progress tracking files
 ├── {tumor}_vs_{normal}.muts.vcf.gz      # Final mutations VCF
 ├── {tumor}_vs_{normal}.snps.vcf.gz      # Final SNPs VCF
