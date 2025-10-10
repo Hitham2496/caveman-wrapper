@@ -368,6 +368,9 @@ class CavemanRunner():
         """
         no_process = getattr(self, "process", None) is None
 
+        # All of the member methods for running caveman return bools, if the bool returned
+        # is false, then the program exits to mimic the behaviour of the Perl script.
+
         #### Step 1. setup has been completed
 
         #### Step 2. register processes, required for Perl, not for Python
@@ -393,11 +396,13 @@ class CavemanRunner():
             contig_count = len(valid_indices)
             setattr(self, "valid_fai_idx", valid_indices)
 
-            self.caveman_split()
+            if not self.caveman_split():
+                sys.exit()
 
         # Step 6. split_concat: if !process OR process == split_concat
         if no_process or getattr(self, "process", None) == "split_concat":
-            self.concat()
+            if not self.concat():
+                sys.exit()
         
         split_count = None
         # Step 7. file_line_count: if !process OR process in [mstep, estep]
@@ -409,21 +414,25 @@ class CavemanRunner():
 
         # Step 8. caveman_mstep: if !process OR process == mstep
         if no_process or getattr(self, "process", None) == "mstep":
-            self.caveman_mstep(split_count)
+            if not self.caveman_mstep(split_count):
+                sys.exit()
 
         # Step 9. caveman_merge: if !process OR process == merge
         if no_process or getattr(self, "process", None) == "merge":
-            self.caveman_merge()
+            if not self.caveman_merge():
+                sys.exit()
 
         # Step 10. caveman_estep: if !process OR process == estep
         if no_process or getattr(self, "process", None) == "estep":
-            self.caveman_estep(split_count)
+            if not self.caveman_estep(split_count):
+                sys.exit()
         
         # Step 11. caveman_merge_results: if !process OR process == merge_results
         out_file = f"{self.tumour_bam}_vs_{self.normal_bam}"
 
         if no_process or getattr(self, "process", None) == "merge_results":
-            self.caveman_merge_results(out_file)
+            if not self.caveman_merge_results(out_file):
+                sys.exit()
         
         # Step 12. caveman_add_vcf_ids: if !process OR process == add_ids
         raw_muts_file = f"{out_file}.{CavemanConstants.RAW_MUTS}"
@@ -433,8 +442,10 @@ class CavemanRunner():
 
         if no_process or getattr(self, "process", None) == "add_ids":
             # First do mutations then SNPs
-            self.caveman_add_vcf_ids(raw_muts_file, ids_muts_file, "muts")
-            self.caveman_add_vcf_ids(raw_snps_file, ids_snps_file, "snps")
+            if not self.caveman_add_vcf_ids(raw_muts_file, ids_muts_file, "muts"):
+                sys.exit()
+            if not self.caveman_add_vcf_ids(raw_snps_file, ids_snps_file, "snps"):
+                sys.exit()
 
         # Step 13. caveman_flag: if !process OR process == flag OR !noflag
         flag_defined_or_main_run = (no_process or getattr(self, "process", None) == "flag")
@@ -446,14 +457,17 @@ class CavemanRunner():
             self.split_out = f"{ids_muts_file}.split"
             # No need for split_lines param as it is in CavemanConstants
             # Split VCF first
-            self.caveman_split_vcf()
+            if not self.caveman_split_vcf():
+                sys.exit()
 
             self.vcf_split_count = self.count_files("f{self.split_out}.*")
             self.flagged = f"{out_file}.{CavemanConstants.FLAGGED_MUTS}"
             # Concatenate flagged files to single flagged output file
-            self.concat_flagged()
+            if not self.concat_flagged():
+                sys.exit()
             # Gzip and index output flagged file
-            self.zip_flagged()
+            if not self.zip_flagged():
+                sys.exit
 
         # Step 14. cleanup: if !noclean
         if not getattr(self, "noclean", None):
@@ -461,8 +475,11 @@ class CavemanRunner():
             # effect and makes the implementaiton more readable.
             add_ids_defined = getattr(self, "add_ids", None)
             if flag_defined_or_main_run or (no_flag_defined and add_ids_defined):
-                self.pre_cleanup_zip()
-                self.cleanup()
+                if not self.pre_cleanup_zip():
+                    return False
+
+                if not self.cleanup():
+                    return False
 
     def caveman_setup(self):
         """
@@ -616,12 +633,11 @@ class CavemanRunner():
         """
         index_list = None 
         num_procs = self.threads
-        if index:
-            index_list = self.limited_xstep_indices(index)
-            if index != self.index:
-                return True
-        else:
-            index_list = self.valid_fai_idx
+        if index and index != self.index:
+            print(index, self.index)
+            return True
+
+        index_list = self.limited_xstep_indices(index)
 
         # If we only have one index to consider, only one thread is required.
         if len(index_list) == 1:
