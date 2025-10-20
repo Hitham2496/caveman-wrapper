@@ -404,17 +404,17 @@ class CavemanRunner():
             if not self.concat():
                 sys.exit()
         
-        split_count = None
+        self.split_count = None
         # Step 7. file_line_count: if !process OR process in [mstep, estep]
         if no_process or getattr(self, "process", None) in ["mstep", "estep"]:
-            split_count = file_line_count(self.split_list)
+            self.split_count = file_line_count(self.split_list)
 
         if getattr(self, "limit", None):
-            split_count = self.limit
+            self.split_count = self.limit
 
         # Step 8. caveman_mstep: if !process OR process == mstep
         if no_process or getattr(self, "process", None) == "mstep":
-            if not self.caveman_mstep(split_count):
+            if not self.caveman_mstep():
                 sys.exit()
 
         # Step 9. caveman_merge: if !process OR process == merge
@@ -424,7 +424,7 @@ class CavemanRunner():
 
         # Step 10. caveman_estep: if !process OR process == estep
         if no_process or getattr(self, "process", None) == "estep":
-            if not self.caveman_estep(split_count):
+            if not self.caveman_estep():
                 sys.exit()
         
         # Step 11. caveman_merge_results: if !process OR process == merge_results
@@ -558,7 +558,7 @@ class CavemanRunner():
         if index:
             index_list = [self.valid_fai_idx[index-1]]
             num_procs = 1
-            if index != self.index:
+            if index != getattr(self, "index", None):
                 return True
             if success_exists(self.progress_dir, index):
                 return True
@@ -604,7 +604,7 @@ class CavemanRunner():
 
         return successful_run
 
-    def caveman_mstep(self, index=None):
+    def caveman_mstep(self):
         """
         Runs CAVEMAN_MSTEP from the parameters used at initialisation,
         or optionally from a specified index (starting from 1).
@@ -621,27 +621,36 @@ class CavemanRunner():
         A bool is returned, trivially equal to True/False if the run is/is
         not successful to maintain consistency with Perl wrapper.
 
-        Parameters:
-        -----------
-        `index` : `int` -
-            Starting index for limited x step check.
-
         Returns:
         --------
         `bool` - 
             True if the run is successful, False if errors arise in running
         """
-        index_list = None 
         num_procs = self.threads
-        if index and index != self.index:
-            print(index, self.index)
-            return True
+        base = 1
+        has_limit = getattr(self, "index", None)
+        has_index = getattr(self, "limit", None)
+        if has_index:
+            base = self.index
 
-        index_list = self.limited_xstep_indices(index)
+        index_list = [base]
+        if has_limit:
+            # Replicate behaviour of limited_xstep_indices on full set of indices
+            while True:
+                base += self.limit
+                if base > self.split_count:
+                    break
+                index_list.append(base)
+        elif (not has_limit) and (not has_index):
+            # Effectively, this wil just give us range(1, split_count+1)
+            index_list.extend(range(base+1, self.split_count+1))
+
+        print(f"Second printout: index_list = {index_list}")
 
         # If we only have one index to consider, only one thread is required.
         if len(index_list) == 1:
             num_procs = 1
+        print(f"Third printout: num_procs = {num_procs}")
 
         # In case function is being called manually, check caveman
         # is still in the path.
@@ -652,6 +661,7 @@ class CavemanRunner():
         with Pool(processes=num_procs) as pool:
             async_results = []
             for idx, value in enumerate(index_list):
+                print(f"In main loop: index: {idx}, value: {value}")
                 # If run for current index has been done, continue
                 if success_exists(self.progress_dir, idx+1):
                     continue
@@ -663,12 +673,17 @@ class CavemanRunner():
                 async_results.append(result)
 
             for item in async_results:
+                print(f"In results pool")
 
+                # TODO: Debug why this is not printing
+                # TODO: Make errors nicer
+                # TODO: Fix worker
+                # TODO: implement in estep, remove limited_xstep function
                 final_result = item.get()
 
                 if not final_result["success"]:
-                    print(f"Split stage failed for {final_result['index']}", file=sys.stderr)
-                    print(f"Error: {final_result['error']}", file=sys.stderr)
+                    print(f"Mstep stage failed for {final_result['index']}", file=sys.stderr)
+                    print(f"Eror: {final_result['message']}", file=sys.stderr)
                     errors_raised = True
                 elif not touch_success(self.progress_dir, final_result["index"]):
                     # touch_success is called, so if not successful count as an error
@@ -740,7 +755,8 @@ class CavemanRunner():
         num_procs = self.threads
         if index:
             index_list = self.limited_xstep_indices(index)
-            if index != self.index:
+            self_index = getattr(self, "index", None)
+            if self_index and index != self_index:
                 return True
         else:
             index_list = self.valid_fai_idx
@@ -807,7 +823,7 @@ class CavemanRunner():
                 final_result = item.get()
 
                 if not final_result["success"]:
-                    print(f"Split stage failed for {final_result['index']}", file=sys.stderr)
+                    print(f"Estep stage failed for {final_result['index']}", file=sys.stderr)
                     print(f"Error: {final_result['error']}", file=sys.stderr)
                     errors_raised = True
                 elif not touch_success(self.progress_dir, final_result["index"]):
@@ -947,7 +963,8 @@ class CavemanRunner():
         index_list = None 
         num_procs = self.threads
         if index:
-            if index != self.index:
+            self_index = getattr(self, "index", None)
+            if self_index and index != self_index:
                 return True
         else:
             index_list = self.limited_flag_indices(index)
@@ -1264,6 +1281,7 @@ class CavemanRunner():
             List of limited indices by xstep.
         """
         split_count = file_line_count(self.split_list)
+        print(f"In limited_xstep_indices: split_count = {split_count}")
         indices = self.limited_indices(index, split_count)
         return indices
 
