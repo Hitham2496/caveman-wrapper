@@ -10,7 +10,6 @@ from dataclasses import dataclass
 import gzip
 import shutil
 import re
-import inspect
 import subprocess
 from pathlib import Path
 
@@ -95,7 +94,7 @@ def check_outdir(directory_name):
 
     if os.path.isdir(directory_name):
         if len(os.listdir(directory_name)) != 0:
-            raise OSError("Directory {directory_name} exists and is non-empty")
+            print("Warning: Directory {directory_name} exists and is non-empty", file=sys.stderr)
 
         try:
             filestream = open(f"{directory_name}/test_file.txt", 'w')
@@ -116,52 +115,60 @@ def check_outdir(directory_name):
             print(e, file=sys.stderr)
             print(f"Error creating output directory {directory_name}", file=sys.stderr)
 
-def get_marker_filename(tmp, *indices):
+def get_marker_filename(tmp, function_name, *indices):
     """
     Get the filename for PCAP::Threaded progress tracking utility
     functions `success_exists` and `touch_success`
+
+    Function name is given as an argument for simplicity.
     """
-    # Previous caller used was too high in the tree
-    # f"{frame.frame.f_globals['__name__']}_{frame.function}".replace('.', '_')
-    # Need two frames back (worker/touch_success/success_exists -> {caller}
-    caller = inspect.getframeinfo(inspect.currentframe().f_back.f_back)[2]
     if indices:
         suffix = '.'.join(str(i) for i in indices)
-        return  Path(tmp) / f"{caller}.{suffix}"
+        return  Path(tmp) / f"{function_name}.{suffix}"
 
-    return Path(tmp) / f"{caller}"
+    return Path(tmp) / f"{function_name}"
 
-def success_exists(tmp, *indices):
+def success_exists(tmp, function_name, *indices):
     """
     Utility function to replicate progress checking of
     PCAP::Threaded::success_exists.
+
+    Function name is given as an argument for simplicity.
     """
-    marker = get_marker_filename(tmp, *indices)
+    marker = get_marker_filename(tmp, function_name, *indices)
     if marker.exists():
         print(f"Skipping {marker.name} as previously successful")
         return True
+
     return False
 
-def touch_success(tmp, *indices):
+def touch_success(tmp, function_name, *indices):
     """
     Utility function to replicate progress logging of
     PCAP::Threaded::touch_success.
+
+    Function name is given as an argument for simplicity.
     """
-    marker = get_marker_filename(tmp, *indices)
+    marker = get_marker_filename(tmp, function_name, *indices)
     marker.parent.mkdir(parents=True, exist_ok=True)
     marker.touch()
     return True
 
-def worker(tmp, command, index):
+def worker(tmp, function_name, command, index):
     """
     A worker method to run a specific command with a given
     index to report errors.
+
+    Function name is given as an argument for simplicity.
 
     Parameters:
     ----------
     `tmp` : `str` - 
         Directory into which logs should be written for stdout
         and stderr.
+
+    `function_name` : `str` - 
+        Name of calling function, for logging
 
     `command` : `str` - 
         Command to be executed, as one string
@@ -177,7 +184,7 @@ def worker(tmp, command, index):
         the associated exception.
     """
     try:
-        marker = get_marker_filename(tmp, index)
+        marker = get_marker_filename(tmp, function_name, index)
 
         with open(f"{marker}.out", "w") as out, open(f"{marker}.err", "w") as err:
             subprocess.run(command.split(" "), check=True, stdout=out, stderr=err)
