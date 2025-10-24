@@ -490,7 +490,8 @@ class CavemanRunner():
         `bool` - True if the run is successful, False otherwise, based on
         exit code of job, and output of `touch_success`.
         """
-        if success_exists(self.progress_dir, 0):
+        func_name = "caveman_setup"
+        if success_exists(self.progress_dir, func_name, 0):
             return True
         
         # In case function is being called manually, check caveman
@@ -516,14 +517,14 @@ class CavemanRunner():
 
         # Only one process is required for setup, set index to 0.
         index = 0
-        final_result = worker(self.log_dir, command, index)
+        final_result = worker(self.log_dir, func_name, command, index)
 
         if not final_result["success"]:
             print(f"Setup stage failed for {final_result['index']}", file=sys.stderr)
             print(f"Error: {final_result['error']}", file=sys.stderr)
             return False
 
-        return touch_success(self.progress_dir, final_result["index"])
+        return touch_success(self.progress_dir, func_name, final_result["index"])
 
     def caveman_split(self, index=None):
         """
@@ -553,6 +554,7 @@ class CavemanRunner():
         `bool` - 
             True if the run is successful, False if errors arise in running
         """
+        func_name = "caveman_split"
         index_list = None
         num_procs = self.threads
         if index:
@@ -560,7 +562,7 @@ class CavemanRunner():
             num_procs = 1
             if index != getattr(self, "index", None):
                 return True
-            if success_exists(self.progress_dir, index):
+            if success_exists(self.progress_dir, func_name, index):
                 return True
         else:
             index_list = self.valid_fai_idx
@@ -575,14 +577,14 @@ class CavemanRunner():
             async_results = []
             for idx, value in enumerate(index_list):
                 # If run for current index has been done, continue
-                if success_exists(self.progress_dir, idx+1):
+                if success_exists(self.progress_dir, func_name, idx+1):
                     continue
 
                 command = f"caveman split -i {value} "
                 command += f"-f {self.cave_cfg} "
                 command += f"-e {self.read_count}"
 
-                result = pool.apply_async(worker, args=(self.log_dir, command, idx+1,))
+                result = pool.apply_async(worker, args=(self.log_dir, func_name, command, idx+1,))
                 async_results.append(result)
 
             for item in async_results:
@@ -593,7 +595,7 @@ class CavemanRunner():
                     print(f"Split stage failed for {final_result['index']}", file=sys.stderr)
                     print(f"Error: {final_result['error']}", file=sys.stderr)
                     errors_raised = True
-                elif not touch_success(self.progress_dir, final_result["index"]):
+                elif not touch_success(self.progress_dir, func_name, final_result["index"]):
                     # touch_success os called, so if not successful count as an error
                     errors_raised = True
                 else:
@@ -609,14 +611,13 @@ class CavemanRunner():
         Runs CAVEMAN_MSTEP from the parameters used at initialisation,
         or optionally from a specified index (starting from 1).
 
-        If `index` is provided, the caveman split workflow is run with
-        the initialisation settings, for only the value of valid_fai_idx
-        at position `index - 1`. The number of processes for the pool
-        is set to 1.
+        If `self.index` is provided, the caveman split workflow is run with
+        the initialisation settings, for only the value at position
+        `self.index - 1`. The number of processes for the pool is set to 1.
 
         Otherwise, a pool of `self.threads` size is instantiated and
-        caveman split is run asynchronously for each value of valid_fai_idx
-        as calculated from the initialisation
+        caveman split is run asynchronously for each index value as
+        calculated from the initialisation
 
         A bool is returned, trivially equal to True/False if the run is/is
         not successful to maintain consistency with Perl wrapper.
@@ -626,6 +627,7 @@ class CavemanRunner():
         `bool` - 
             True if the run is successful, False if errors arise in running
         """
+        func_name = "caveman_mstep"
         num_procs = self.threads
         base = 1
         has_limit = getattr(self, "index", None)
@@ -663,29 +665,25 @@ class CavemanRunner():
             for idx, value in enumerate(index_list):
                 print(f"In main loop: index: {idx}, value: {value}")
                 # If run for current index has been done, continue
-                if success_exists(self.progress_dir, idx+1):
+                if success_exists(self.progress_dir, func_name, idx+1):
                     continue
 
                 command = f"caveman mstep -i {value} "
                 command += f"-f {self.cave_cfg}"
 
-                result = pool.apply_async(worker, args=(self.log_dir, command, idx+1,))
+                result = pool.apply_async(worker, args=(self.log_dir, func_name, command, idx+1,))
                 async_results.append(result)
 
             for item in async_results:
                 print(f"In results pool")
 
-                # TODO: Debug why this is not printing
-                # TODO: Make errors nicer
-                # TODO: Fix worker
-                # TODO: implement in estep, remove limited_xstep function
                 final_result = item.get()
 
                 if not final_result["success"]:
                     print(f"Mstep stage failed for {final_result['index']}", file=sys.stderr)
                     print(f"Eror: {final_result['message']}", file=sys.stderr)
                     errors_raised = True
-                elif not touch_success(self.progress_dir, final_result["index"]):
+                elif not touch_success(self.progress_dir, func_name, final_result["index"]):
                     # touch_success is called, so if not successful count as an error
                     errors_raised = True
                 else:
@@ -702,10 +700,11 @@ class CavemanRunner():
         """ 
         # In case function is being called manually, check caveman
         # is still in the path.
+        func_name = "caveman_merge"
         if not self.check_exec_in_path():
             raise FileNotFoundError("`caveman` could not be found in $PATH")
 
-        if success_exists(self.progress_dir, 0):
+        if success_exists(self.progress_dir, func_name, 0):
             return True
         
         command = f"caveman merge "
@@ -715,55 +714,62 @@ class CavemanRunner():
 
         # Only one process is required for setup, set index to 0.
         index = 0
-        final_result = worker(self.log_dir,command, index)
+        final_result = worker(self.log_dir, func_name, command, index)
 
         if not final_result["success"]:
             print(f"Merge stage failed for {final_result['index']}", file=sys.stderr)
             print(f"Error: {final_result['error']}", file=sys.stderr)
             return False
 
-        return touch_success(self.progress_dir, final_result["index"])
+        return touch_success(self.progress_dir, func_name, final_result["index"])
  
-    def caveman_estep(self, index=None):
+    def caveman_estep(self):
         """
         Runs CAVEMAN_ESTEP from the parameters used at initialisation,
         or optionally from a specified index (starting from 1).
 
-        If `index` is provided, the caveman split workflow is run with
-        the initialisation settings, for only the value of valid_fai_idx
-        at position `index - 1`. The number of processes for the pool
-        is set to 1.
+        If `self.index` is provided, the caveman split workflow is run with
+        the initialisation settings, for only the value at position
+        `self.index - 1`. The number of processes for the pool is set to 1.
 
         Otherwise, a pool of `self.threads` size is instantiated and
-        caveman split is run asynchronously for each value of valid_fai_idx
-        as calculated from the initialisation
+        caveman split is run asynchronously for each index value as
+        calculated from the initialisation
 
         A bool is returned, trivially equal to True/False if the run is/is
         not successful to maintain consistency with Perl wrapper.
-
-        Parameters:
-        -----------
-        `index` : `int` -
-            Starting index for limited x step check.
 
         Returns:
         --------
         `bool` - 
             True if the run is successful, False if errors arise in running
         """
-        index_list = None 
+        func_name = "caveman_estep"
         num_procs = self.threads
-        if index:
-            index_list = self.limited_xstep_indices(index)
-            self_index = getattr(self, "index", None)
-            if self_index and index != self_index:
-                return True
-        else:
-            index_list = self.valid_fai_idx
+        base = 1
+        has_limit = getattr(self, "index", None)
+        has_index = getattr(self, "limit", None)
+        if has_index:
+            base = self.index
+
+        index_list = [base]
+        if has_limit:
+            # Replicate behaviour of limited_xstep_indices on full set of indices
+            while True:
+                base += self.limit
+                if base > self.split_count:
+                    break
+                index_list.append(base)
+        elif (not has_limit) and (not has_index):
+            # Effectively, this wil just give us range(1, split_count+1)
+            index_list.extend(range(base+1, self.split_count+1))
+
+        print(f"Second printout: index_list = {index_list}")
 
         # If we only have one index to consider, only one thread is required.
         if len(index_list) == 1:
             num_procs = 1
+        print(f"Third printout: num_procs = {num_procs}")
 
         # In case function is being called manually, check caveman
         # is still in the path.
@@ -775,7 +781,7 @@ class CavemanRunner():
             async_results = []
             for idx, value in enumerate(index_list):
                 # If run for current index has been done, continue
-                if success_exists(self.progress_dir, idx+1):
+                if success_exists(self.progress_dir, func_name, idx+1):
                     continue
 
                 command = f"caveman estep -i {value} "
@@ -815,7 +821,7 @@ class CavemanRunner():
                 if getattr(self, "debug_cave", None):
                     command += f"-s "
 
-                result = pool.apply_async(worker, args=(self.log_dir, command, idx+1,))
+                result = pool.apply_async(worker, args=(self.log_dir, func_name, command, idx+1,))
                 async_results.append(result)
 
             for item in async_results:
@@ -826,7 +832,7 @@ class CavemanRunner():
                     print(f"Estep stage failed for {final_result['index']}", file=sys.stderr)
                     print(f"Error: {final_result['error']}", file=sys.stderr)
                     errors_raised = True
-                elif not touch_success(self.progress_dir, final_result["index"]):
+                elif not touch_success(self.progress_dir, func_name, final_result["index"]):
                     # touch_success is called, so if not successful count as an error
                     errors_raised = True
                 else:
@@ -854,6 +860,7 @@ class CavemanRunner():
         `bool` - 
             True if the run is successful, False if errors arise in running
         """
+        func_name = "caveman_merge_results"
         tmp = self.tmp_dir
         # TODO: Implement PCAP::sample_name analogue to redefine Caveman::Implement::prepare
         # if possible, currently just writing to tumour_filename_vs_normal_filename.
@@ -864,42 +871,42 @@ class CavemanRunner():
 
         # First do substitutions
         sub_command = f"mergeCavemanResults -s {split_list} -o {out_file}.muts.vcf -f {self.subvcf}"
-        if success_exists(f"{self.progress_dir}/merge_muts", 0):
+        if success_exists(f"{self.progress_dir}/merge_muts", func_name, 0):
             return True
 
         # Only one process is required for setup, set index to 0.
         sub_index = 0
-        sub_final_result = worker(self.log_dir, sub_command, sub_index)
-        sub_success = touch_success(f"{self.progress_dir}/merge_muts", sub_final_result["index"])
+        sub_final_result = worker(self.log_dir, func_name, sub_command, sub_index)
+        sub_success = touch_success(f"{self.progress_dir}/merge_muts", func_name, sub_final_result["index"])
         if not sub_success:
             print(f"Merging results failed for mutations stage failed", file=sys.stderr)
             return False
 
         # Next do SNPs
         snp_command = f"mergeCavemanResults -s {split_list} -o {out_file}.snps.vcf -f {self.snpvcf}"
-        if success_exists(f"{self.progress_dir}/merge_snps", 0):
+        if success_exists(f"{self.progress_dir}/merge_snps", func_name, 0):
             return True
 
         # Only one process is required for setup, set index to 0.
         snp_index = 0
-        snp_final_result = worker(self.log_dir, snp_command, snp_index)
-        snp_success = touch_success(f"{self.progress_dir}/merge_snps", snp_final_result["index"])
+        snp_final_result = worker(self.log_dir, func_name, snp_command, snp_index)
+        snp_success = touch_success(f"{self.progress_dir}/merge_snps", func_name, snp_final_result["index"])
         if not snp_success:
             print(f"Merging results failed for SNP stage failed", file=sys.stderr)
             return False
 
         # Next do no analysis region.
-        if success_exists(f"{self.progress_dir}/merge_no_analysis", 0):
+        if success_exists(f"{self.progress_dir}/merge_no_analysis", func_name, 0):
             return True
         else:
             no_analysis_command = f"mergeCavemanResults -s {split_list} -o {out_file}.no_analysis.bed -f {self.noanalysisbed}"
 
             # Only one process is required for setup, set index to 0.
             no_analysis_index = 0
-            no_analysis_final_result = worker(self.log_dir, no_analysis_command, no_analysis_index)
+            no_analysis_final_result = worker(self.log_dir, func_name, no_analysis_command, no_analysis_index)
             # Extend no analysis region
             self.extend_no_analysis(f"{out_file}.no_analysis.bed")
-            no_analysis_success = touch_success(f"{self.progress_dir}/merge_no_analysis", no_analysis_final_result["index"]) 
+            no_analysis_success = touch_success(f"{self.progress_dir}/merge_no_analysis", func_name, no_analysis_final_result["index"]) 
             if not no_analysis_success:
                 print(f"Merging results failed for no analysis stage failed", file=sys.stderr)
                 return False
@@ -926,7 +933,8 @@ class CavemanRunner():
         `bool` - 
             True if the run is successful, False if errors arise in running
         """
-        if success_exists(f"{self.progress_dir}/{snps_or_muts}"):
+        func_name = "caveman_add_vcf_ids"
+        if success_exists(f"{self.progress_dir}/{snps_or_muts}", func_name):
             return True
 
         # Raise an error if the perl executable is not in the path
@@ -943,8 +951,8 @@ class CavemanRunner():
         command += f"-i {raw_file} "
         command += f"-o {ids_file}"
 
-        final_result = worker(self.log_dir, command, 0)
-        if not touch_success(f"{self.progress_dir}/{snps_or_muts}"):
+        final_result = worker(self.log_dir, func_name, command, 0)
+        if not touch_success(f"{self.progress_dir}/{snps_or_muts}", func_name):
             print(f"caveman_add_vcf_ids (calling {executable}) failed", file=sys.stderr)
             print(f"Error: {final_result['error']}", file=sys.stderr)
             return False
@@ -960,6 +968,7 @@ class CavemanRunner():
         `index` : `int` - 
             The required index for file flagging
         """
+        func_name = "caveman_flag"
         index_list = None 
         num_procs = self.threads
         if index:
@@ -989,7 +998,7 @@ class CavemanRunner():
             async_results = []
             for idx, value in enumerate(index_list):
                 # If run for current index has been done, continue
-                if success_exists(self.progress_dir, idx+1):
+                if success_exists(self.progress_dir, func_name, idx+1):
                     continue
 
                 command = f"perl {executable} "
@@ -1017,7 +1026,7 @@ class CavemanRunner():
                 if getattr(self, "annot_bed", None):
                     command += f"-ab {self.annot_bed} "
 
-                result = pool.apply_async(worker, args=(self.log_dir, command, idx+1,))
+                result = pool.apply_async(worker, args=(self.log_dir, func_name, command, idx+1,))
                 async_results.append(result)
 
             for item in async_results:
@@ -1028,7 +1037,7 @@ class CavemanRunner():
                     print(f"Flag stage failed for {final_result['index']}", file=sys.stderr)
                     print(f"Error: {final_result['error']}", file=sys.stderr)
                     errors_raised = True
-                elif not touch_success(self.progress_dir, final_result["index"]):
+                elif not touch_success(self.progress_dir, func_name, final_result["index"]):
                     # touch_success is called, so if not successful count as an error
                     errors_raised = True
                 else:
@@ -1048,7 +1057,8 @@ class CavemanRunner():
         `bool` - 
             True if run was successful, False otherwise.
         """
-        if success_exists(f"{self.progress_dir}", 0):
+        func_name = "caveman_split_vcf"
+        if success_exists(f"{self.progress_dir}", func_name, 0):
             return True
 
         # Raise an error if the perl executable is not in the path
@@ -1067,8 +1077,8 @@ class CavemanRunner():
         command += f"-s "
         command += f"-l {CavemanConstants.SPLIT_LINE_COUNT}"
 
-        final_result = worker(self.log_dir, command, 0)
-        if not touch_success(f"{self.progress_dir}", 0):
+        final_result = worker(self.log_dir, func_name, command, 0)
+        if not touch_success(f"{self.progress_dir}", func_name, 0):
             print(f"caveman_split_vcf (calling {executable}) failed", file=sys.stderr)
             print(f"Error: {final_result['error']}", file=sys.stderr)
             return False
@@ -1100,7 +1110,8 @@ class CavemanRunner():
         """
         Runs concatenation for files from caveman running
         """
-        if success_exists(self.progress_dir, 0):
+        func_name = "concat"
+        if success_exists(self.progress_dir, func_name, 0):
             return True
         
         # Concatenate all {self.split_list}.* files to {self.split_list}
@@ -1118,7 +1129,7 @@ class CavemanRunner():
             return False
 
         index = 0
-        return touch_success(self.progress_dir, index)
+        return touch_success(self.progress_dir, func_name, index)
 
     def concat_flagged(self):
         """
@@ -1129,7 +1140,7 @@ class CavemanRunner():
         `bool` - 
             True if the run was successful, False otherwise.
         """
-        if success_exists(self.progress_dir, 0):
+        if success_exists(self.progress_dir, func_name, 0):
             return True
         
         # Concatenate all {self.split_list}.* files to {self.split_list}
@@ -1148,7 +1159,7 @@ class CavemanRunner():
             print(f"Error: {e}", file=sys.stderr)
             return False
 
-        return touch_success(self.progress_dir, 0)
+        return touch_success(self.progress_dir, func_name, 0)
 
     def zip_flagged(self):
         """
@@ -1159,6 +1170,7 @@ class CavemanRunner():
         `bool` - 
             True if run is successful, False otherwise.
         """
+        func_name = "zip_flagged"
         # IMPORTANT: THERE IS NO CHECK AGAINST `success_exists` IN THE PERL
         # WRAPPER, TO MAINTAIN COMPATIBILITY I HAVE NOT IMPLEMENTED ONE HERE.
         vcf_gz = f"{self.flagged}.gz"
@@ -1179,20 +1191,21 @@ class CavemanRunner():
 
         for command in commands:
             index = 0
-            result = worker(self.log_dir, command, index)
+            result = worker(self.log_dir, func_name, command, index)
 
             if not result["success"]:
                 print(f"Zip flagging stage failed for command: `{command}`", file=sys.stderr)
                 print(f"Error: {result['error']}", file=sys.stderr)
                 return False
 
-        return touch_success(self.progress_dir, 0)
+        return touch_success(self.progress_dir, func_name, 0)
 
     def pre_cleanup_zip(self):
         """
         Zip files before the cleanup stage if cleanup option is specified
         """
-        if success_exists(self.progress_dir, 0):
+        func_name = "pre_cleanup_zip"
+        if success_exists(self.progress_dir, func_name, 0):
             return True
 
         # Raise an error if bgzip executable is not in the path
@@ -1217,14 +1230,14 @@ class CavemanRunner():
 
         for command in commands:
             index = 0
-            result = worker(self.log_dir, command, index)
+            result = worker(self.log_dir, func_name, command, index)
 
             if not result["success"]:
                 print(f"Zip flagging stage failed for command: `{command}`", file=sys.stderr)
                 print(f"Error: {result['error']}", file=sys.stderr)
                 return False
 
-        return touch_success(self.progress_dir, 0)
+        return touch_success(self.progress_dir, func_name, 0)
 
     def cleanup(self):
         """
