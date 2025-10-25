@@ -1140,6 +1140,7 @@ class CavemanRunner():
         `bool` - 
             True if the run was successful, False otherwise.
         """
+        func_name = "concat_flagged"
         if success_exists(self.progress_dir, func_name, 0):
             return True
         
