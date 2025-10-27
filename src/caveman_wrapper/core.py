@@ -446,11 +446,11 @@ class CavemanRunner():
             if not self.caveman_add_vcf_ids(raw_snps_file, ids_snps_file, "snps"):
                 sys.exit()
 
-        # Step 13. caveman_flag: if !process OR process == flag OR !noflag
+        # Step 13. caveman_flag: if (!process OR process == flag) AND !noflag
         flag_defined_or_main_run = (no_process or getattr(self, "process", None) == "flag")
         no_flag_undefined = getattr(self, "noflag", None)
 
-        if flag_defined_or_main_run or not no_flag_undefined:
+        if flag_defined_or_main_run and not no_flag_undefined:
             # Use same additions to options from perl wrapper for simplicity
             self.for_split = ids_muts_file
             self.split_out = f"{ids_muts_file}.split"
