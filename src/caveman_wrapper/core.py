@@ -13,7 +13,7 @@ import pysam
 import warnings
 from .utils import *
 import glob
-
+import datetime
 
 class CavemanRunner():
     """
@@ -143,7 +143,9 @@ class CavemanRunner():
     def setup_caveman_environment(self):
         """
         Setup caveman with the parameters identified at initialisation
-        """ 
+        """
+        now = datetime.datetime.now()
+        print(f"Init starting: {now}")
         #### Step 1. Check files (ref, tumbam, normbam, ignore) exist
         for item in ["noflag", "noclean"]: 
             if (getattr(self, item, None) is None):
@@ -371,6 +373,8 @@ class CavemanRunner():
         # is false, then the program exits to mimic the behaviour of the Perl script.
 
         #### Step 1. setup has been completed
+        now = datetime.datetime.now()
+        print(f"Init finished: {now}")
 
         #### Step 2. register processes, required for Perl, not for Python
 
@@ -384,10 +388,16 @@ class CavemanRunner():
                 # is not in-place modified in the originl Perl code (caveman.pl:L104-114)
                 shutil.copy(self.reference, f"{tmp_ref}.fai")
 
+        now = datetime.datetime.now()
+        print(f"Setup started: {now}")
         # Step 4. caveman_setup: if !process OR process == setup
         if no_process or getattr(self, "process", None) == "setup":
             self.caveman_setup()
+        now = datetime.datetime.now()
+        print(f"Setup finished: {now}")
 
+        now = datetime.datetime.now()
+        print(f"Split started: {now}")
         # Step 5. caveman_split: if !process OR process == split
         if no_process or getattr(self, "process", None) == "split":
 
@@ -397,11 +407,17 @@ class CavemanRunner():
 
             if not self.caveman_split():
                 sys.exit()
+        now = datetime.datetime.now()
+        print(f"Split finished: {now}")
 
+        now = datetime.datetime.now()
+        print(f"Split concat started: {now}")
         # Step 6. split_concat: if !process OR process == split_concat
         if no_process or getattr(self, "process", None) == "split_concat":
             if not self.concat():
                 sys.exit()
+        now = datetime.datetime.now()
+        print(f"Split concat finished: {now}")
         
         self.split_count = None
         # Step 7. file_line_count: if !process OR process in [mstep, estep]
@@ -411,27 +427,43 @@ class CavemanRunner():
         if getattr(self, "limit", None):
             self.split_count = self.limit
 
+        now = datetime.datetime.now()
+        print(f"Mstep started: {now}")
         # Step 8. caveman_mstep: if !process OR process == mstep
         if no_process or getattr(self, "process", None) == "mstep":
             if not self.caveman_mstep():
                 sys.exit()
+        now = datetime.datetime.now()
+        print(f"Mstep finished: {now}")
 
+        now = datetime.datetime.now()
+        print(f"Merge started: {now}")
         # Step 9. caveman_merge: if !process OR process == merge
         if no_process or getattr(self, "process", None) == "merge":
             if not self.caveman_merge():
                 sys.exit()
+        now = datetime.datetime.now()
+        print(f"Merge finished: {now}")
 
+        now = datetime.datetime.now()
+        print(f"Estep started: {now}")
         # Step 10. caveman_estep: if !process OR process == estep
         if no_process or getattr(self, "process", None) == "estep":
             if not self.caveman_estep():
                 sys.exit()
+        now = datetime.datetime.now()
+        print(f"Estep finished: {now}")
         
         # Step 11. caveman_merge_results: if !process OR process == merge_results
         out_file = f"{self.tumour_bam}_vs_{self.normal_bam}"
 
+        now = datetime.datetime.now()
+        print(f"Merge results started: {now}")
         if no_process or getattr(self, "process", None) == "merge_results":
             if not self.caveman_merge_results(out_file):
                 sys.exit()
+        now = datetime.datetime.now()
+        print(f"Merge results finished: {now}")
         
         # Step 12. caveman_add_vcf_ids: if !process OR process == add_ids
         raw_muts_file = f"{out_file}.{CavemanConstants.RAW_MUTS}"
@@ -439,12 +471,16 @@ class CavemanRunner():
         raw_snps_file = f"{out_file}.{CavemanConstants.RAW_SNPS}"
         ids_snps_file = f"{out_file}.{CavemanConstants.IDS_SNPS}"
 
+        now = datetime.datetime.now()
+        print(f"Add VCF IDs finished: {now}")
         if no_process or getattr(self, "process", None) == "add_ids":
             # First do mutations then SNPs
             if not self.caveman_add_vcf_ids(raw_muts_file, ids_muts_file, "muts"):
                 sys.exit()
             if not self.caveman_add_vcf_ids(raw_snps_file, ids_snps_file, "snps"):
                 sys.exit()
+        now = datetime.datetime.now()
+        print(f"Add VCF IDs finished: {now}")
 
         # Step 13. caveman_flag: if (!process OR process == flag) AND !noflag
         flag_defined_or_main_run = (no_process or getattr(self, "process", None) == "flag")
