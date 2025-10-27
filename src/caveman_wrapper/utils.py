@@ -217,18 +217,18 @@ class CavemanConstants():
     SPLIT_STEP_READ_COUNT = 500000
 
     # Suffixes
-    RAW_MUTS = ".muts.vcf"
-    IDS_MUTS = ".muts.ids.vcf"
-    FLAGGED_MUTS = ".flagged.muts.vcf"
-    FLAGGED_MUTS_GZ = ".flagged.muts.vcf.gz"
-    FLAGGED_MUTS_TBI = ".flagged.muts.vcf.gz.tbi"
-    RAW_SNPS = ".snps.vcf"
-    IDS_SNPS = ".snps.ids.vcf"
-    IDS_SNPS_GZ = ".snps.ids.vcf.gz"
-    IDS_SNPS_TBI = ".snps.ids.vcf.gz.tbi"
-    IDS_MUTS_GZ = ".muts.ids.vcf.gz"
-    IDS_MUTS_TBI = ".muts.ids.vcf.gz.tbi"
-    NO_ANALYSIS = ".no_analysis.bed"
+    RAW_MUTS = "muts.vcf"
+    IDS_MUTS = "muts.ids.vcf"
+    FLAGGED_MUTS = "flagged.muts.vcf"
+    FLAGGED_MUTS_GZ = "flagged.muts.vcf.gz"
+    FLAGGED_MUTS_TBI = "flagged.muts.vcf.gz.tbi"
+    RAW_SNPS = "snps.vcf"
+    IDS_SNPS = "snps.ids.vcf"
+    IDS_SNPS_GZ = "snps.ids.vcf.gz"
+    IDS_SNPS_TBI = "snps.ids.vcf.gz.tbi"
+    IDS_MUTS_GZ = "muts.ids.vcf.gz"
+    IDS_MUTS_TBI = "muts.ids.vcf.gz.tbi"
+    NO_ANALYSIS = "no_analysis.bed"
 
 
 @dataclass

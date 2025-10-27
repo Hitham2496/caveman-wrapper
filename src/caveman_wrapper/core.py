@@ -208,7 +208,6 @@ class CavemanRunner():
 
         #### Step 7. Get assembly and check reference provided is the fasta fai file
 
-        # TODO: Implement more than a stub for this function
         self.get_species_assembly_from_bam()
 
         for bam_key in ["species", "species_assembly"]:
@@ -647,12 +646,9 @@ class CavemanRunner():
             # Effectively, this wil just give us range(1, split_count+1)
             index_list.extend(range(base+1, self.split_count+1))
 
-        print(f"Second printout: index_list = {index_list}")
-
         # If we only have one index to consider, only one thread is required.
         if len(index_list) == 1:
             num_procs = 1
-        print(f"Third printout: num_procs = {num_procs}")
 
         # In case function is being called manually, check caveman
         # is still in the path.
@@ -663,7 +659,6 @@ class CavemanRunner():
         with Pool(processes=num_procs) as pool:
             async_results = []
             for idx, value in enumerate(index_list):
-                print(f"In main loop: index: {idx}, value: {value}")
                 # If run for current index has been done, continue
                 if success_exists(self.progress_dir, func_name, idx+1):
                     continue
@@ -675,7 +670,6 @@ class CavemanRunner():
                 async_results.append(result)
 
             for item in async_results:
-                print(f"In results pool")
 
                 final_result = item.get()
 
@@ -764,12 +758,9 @@ class CavemanRunner():
             # Effectively, this wil just give us range(1, split_count+1)
             index_list.extend(range(base+1, self.split_count+1))
 
-        print(f"Second printout: index_list = {index_list}")
-
         # If we only have one index to consider, only one thread is required.
         if len(index_list) == 1:
             num_procs = 1
-        print(f"Third printout: num_procs = {num_procs}")
 
         # In case function is being called manually, check caveman
         # is still in the path.
