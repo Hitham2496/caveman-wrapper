@@ -137,8 +137,7 @@ class CavemanRunner():
             True if found, False otherwise
         """
         executable_found = shutil.which(executable)
-        #TODO: REMOVE TRUE WHEN TESTING FINISHED
-        return True #bool(executable_found)
+        return bool(executable_found)
 
     def setup_caveman_environment(self):
         """
